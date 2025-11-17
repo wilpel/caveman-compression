@@ -188,6 +188,30 @@ See [SPEC.md](SPEC.md) for full rules.
 
 ---
 
+## Use Cases
+
+### Support Knowledge Base (168→93 tokens, 45%)
+
+**Original:**
+> If a customer reports that they cannot access their account after multiple failed login attempts, this indicates that the account has been automatically locked due to our security policy. To resolve this issue, you should first verify the customer's identity...
+
+**Compressed:**
+> Customer reports no account access. Multiple failed logins. Account locked. Security policy. Verify identity. Ask registered email. Ask last four phone digits. Verify complete. Go admin panel. Search account by email...
+
+**Why it works:** Support agents can search and read compressed knowledge base articles faster. Context window fits more articles.
+
+### Agent Reasoning Format (184→97 tokens, 47%)
+
+**Original:**
+> When analyzing the user's request, you must first identify the primary intent by examining the keywords and context provided in the query. Once you have determined the intent, check whether you have sufficient information...
+
+**Compressed:**
+> Analyze user request. Identify primary intent. Examine keywords, context. Determine intent. Check information sufficiency. Ask clarifying questions if needed. Formulate specific questions. Gather missing details...
+
+**Why it works:** Agent prompts fit more reasoning steps in limited context. Chain-of-thought uses fewer tokens.
+
+---
+
 ## When to Use
 
 ✅ **Good for:**
