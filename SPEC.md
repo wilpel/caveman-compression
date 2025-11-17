@@ -162,14 +162,15 @@ Omit articles (`a`, `an`, `the`) when context provides sufficient specificity.
 
 ### Rule 9: Pronoun Handling
 
-Replace pronouns with explicit nouns when:
-- Antecedent is not in immediately previous sentence
-- Multiple possible referents exist
-- Pronoun is more than 3 letters ("it" OK, "they" OK, "their" → replace)
+Keep short pronouns (it, we, he, she) when unambiguous. Only replace when ambiguous.
 
 ```
-❌ "Function returns value. Store it in variable. Use it later."
-✅ "Function returns value. Store value in variable. Use value later."
+✅ "Function returns value. Store it in variable. Use it later."
+   (it = value, clear from context)
+
+❌ "Function returns value and timestamp. Store it in variable."
+✅ "Function returns value and timestamp. Store value in variable."
+   (which "it"? ambiguous)
 ```
 
 ---
