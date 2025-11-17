@@ -102,24 +102,22 @@ MUST use active voice and present tense unless temporal distinction is semantica
 
 ---
 
-### Rule 6: Specificity Requirement
+### Rule 6: Preserve Specifics
 
-Replace vague quantities with specific ones.
-
-**Vague → Specific transformations**:
-
-| ❌ Vague | ✅ Specific |
-|------------|------------|
-| "several variables" | "three variables" |
-| "some constraints" | "two constraints" |
-| "many requests" | "50 million requests" |
-| "a few engineers" | "15 engineers" |
-
-**Rationale**: Specific numbers preserve information, vague terms lose it.
+Keep specific numbers and quantities. Don't replace with vague terms.
 
 ```
-❌ "The system handles a large number of daily requests"
+✅ "three variables" not "several variables"
+✅ "15 engineers" not "a few engineers"
+✅ "50 million requests" not "many requests"
+```
+
+**Rationale**: Numbers carry information. Vague terms lose it.
+
+```
+❌ "The system handles many daily requests"
 ✅ "System handles 50 million daily requests"
+   (only if original contained "50 million")
 ```
 
 ---
