@@ -284,25 +284,6 @@ To verify Caveman Compression correctness:
 
 ---
 
-## Conformance Levels
-
-### Level 1: Basic Caveman
-- Rules 1-4 applied
-- 15-25% token reduction typical
-- Sufficient for most use cases
-
-### Level 2: Strict Caveman
-- Rules 1-7 applied
-- 25-40% token reduction typical
-- Recommended for token-constrained contexts
-
-### Level 3: Maximum Caveman
-- All 9 rules applied rigorously
-- 40-60% token reduction typical
-- Use only when token cost is critical
-
----
-
 ## Examples by Category
 
 ### Algorithm Explanation
