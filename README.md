@@ -93,7 +93,7 @@ python caveman_compress.py compress -f input.txt -o output.txt
 <table>
 <tr>
 <td width="50%"><b>Normal (201 tokens)</b></td>
-<td width="50%"><b>Caveman (152 tokens)</b></td>
+<td width="50%"><b>Caveman (156 tokens)</b></td>
 </tr>
 <tr>
 <td>
@@ -108,7 +108,7 @@ John Smith. 32 years old. Senior Software Engineer. Large enterprise software co
 </td>
 </tr>
 <tr>
-<td colspan="2" align="center"><b>24% reduction</b></td>
+<td colspan="2" align="center"><b>22% reduction</b></td>
 </tr>
 </table>
 
@@ -117,7 +117,7 @@ John Smith. 32 years old. Senior Software Engineer. Large enterprise software co
 <table>
 <tr>
 <td width="50%"><b>Normal (171 tokens)</b></td>
-<td width="50%"><b>Caveman (74 tokens)</b></td>
+<td width="50%"><b>Caveman (72 tokens)</b></td>
 </tr>
 <tr>
 <td>
@@ -132,7 +132,7 @@ Helpful AI assistant. Provide accurate, concise responses. Prioritize clarity, c
 </td>
 </tr>
 <tr>
-<td colspan="2" align="center"><b>57% reduction</b></td>
+<td colspan="2" align="center"><b>58% reduction</b></td>
 </tr>
 </table>
 
@@ -141,7 +141,7 @@ Helpful AI assistant. Provide accurate, concise responses. Prioritize clarity, c
 <table>
 <tr>
 <td width="50%"><b>Normal (137 tokens)</b></td>
-<td width="50%"><b>Caveman (82 tokens)</b></td>
+<td width="50%"><b>Caveman (79 tokens)</b></td>
 </tr>
 <tr>
 <td>
@@ -156,7 +156,7 @@ Authenticate API. Include API key in Authorization header every request. Prefix 
 </td>
 </tr>
 <tr>
-<td colspan="2" align="center"><b>40% reduction</b></td>
+<td colspan="2" align="center"><b>42% reduction</b></td>
 </tr>
 </table>
 
@@ -166,10 +166,10 @@ Authenticate API. Include API key in Authorization header every request. Prefix 
 
 | Test Case | Original | Compressed | Reduction |
 |-----------|----------|------------|-----------|
-| System prompt | 171 tokens | 74 tokens | **57%** |
-| API documentation | 137 tokens | 82 tokens | **40%** |
-| Resume | 201 tokens | 152 tokens | **24%** |
-| **Average** | **170** | **103** | **40%** |
+| System prompt | 171 tokens | 72 tokens | **58%** |
+| API documentation | 137 tokens | 79 tokens | **42%** |
+| Resume | 201 tokens | 156 tokens | **22%** |
+| **Average** | **170** | **102** | **40%** |
 
 All examples validated with GPT-4o. See [examples/](examples/) for full text.
 
