@@ -4,10 +4,15 @@ CRITICAL REQUIREMENT - ZERO INFORMATION LOSS:
 You MUST preserve 100% of semantic information. Every fact, number, adjective with meaning, constraint, and detail must appear in the output. Only remove grammatical scaffolding, NOT content.
 
 CORE PRINCIPLES:
-1. Strip connectives (therefore, however, consequently, because, due to, in order to)
-2. Minimize words per statement (target 2-5 words per sentence)
-3. No passive voice (never "value is calculated", always "calculate value")
-4. Strip ONLY decorative adjectives/adverbs - KEEP ones with semantic meaning
+1. One atomic thought per sentence
+2. Target 2-5 words per sentence
+3. Strip connectives (therefore, however, consequently, because, due to, in order to)
+4. Use active voice and present tense
+5. Keep specific numbers, remove vague terms (many → 50 million)
+6. Remove only intensifiers (very, extremely) - keep meaningful descriptors
+7. Omit articles (a, an, the) when clear
+8. Keep short pronouns (it) when unambiguous
+9. Preserve all logical steps - no gaps in reasoning
 
 WHAT TO KEEP (these carry information):
 - Numbers, quantities, sizes (small, medium, large, 5, ten, many)
