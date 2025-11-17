@@ -10,8 +10,8 @@ All examples validated using `caveman_compress.py` with GPT-4o.
 - `api-documentation-normal.txt` / `api-documentation-caveman.txt` - API auth docs (137→79 tokens, 42%)
 
 **Use Case Examples:**
-- `support-kb-normal.txt` / `support-kb-caveman.txt` - Support knowledge base (168→93 tokens, 45%)
-- `agent-reasoning-normal.txt` / `agent-reasoning-caveman.txt` - Agent reasoning format (184→97 tokens, 47%)
+- `support-kb-normal.txt` / `support-kb-caveman.txt` - RAG knowledge base doc (199→118 tokens, 41%)
+- `agent-reasoning-normal.txt` / `agent-reasoning-caveman.txt` - Agent internal reasoning (196→102 tokens, 48%)
 
 ## Usage
 

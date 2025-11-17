@@ -190,25 +190,25 @@ See [SPEC.md](SPEC.md) for full rules.
 
 ## Use Cases
 
-### Support Knowledge Base (168→93 tokens, 45%)
+### RAG Knowledge Base (199→118 tokens, 41%)
 
 **Original:**
-> If a customer reports that they cannot access their account after multiple failed login attempts, this indicates that the account has been automatically locked due to our security policy. To resolve this issue, you should first verify the customer's identity...
+> A network router is a device that forwards data packets between computer networks. Routers perform the traffic directing functions on the Internet. When a data packet arrives at a router, the router examines the destination IP address...
 
 **Compressed:**
-> Customer reports no account access. Multiple failed logins. Account locked. Security policy. Verify identity. Ask registered email. Ask last four phone digits. Verify complete. Go admin panel. Search account by email...
+> Network router forwards data packets. Routers direct Internet traffic. Packet arrives router. Router examines destination IP address. Router determines best path. Router uses routing table...
 
-**Why it works:** Support agents can search and read compressed knowledge base articles faster. Context window fits more articles.
+**Why it works:** Store compressed docs in vector DB. Agent receives compressed RAG results directly. No decompression needed—agent understands caveman format. Fits 2-3x more context.
 
-### Agent Reasoning Format (184→97 tokens, 47%)
+### Agent Internal Reasoning (196→102 tokens, 48%)
 
 **Original:**
-> When analyzing the user's request, you must first identify the primary intent by examining the keywords and context provided in the query. Once you have determined the intent, check whether you have sufficient information...
+> First, I need to understand what the user is asking for. They want to calculate the optimal route between two cities considering both distance and traffic conditions. Let me break this down into steps. Step one: I should identify the starting city...
 
 **Compressed:**
-> Analyze user request. Identify primary intent. Examine keywords, context. Determine intent. Check information sufficiency. Ask clarifying questions if needed. Formulate specific questions. Gather missing details...
+> Need understand user request. User wants optimal route between cities. Consider distance, traffic. Step one: Identify starting city, destination city. Step two: Retrieve current traffic data for routes...
 
-**Why it works:** Agent prompts fit more reasoning steps in limited context. Chain-of-thought uses fewer tokens.
+**Why it works:** Agent thinks in caveman format during problem-solving. Chain-of-thought uses 50% fewer tokens. More reasoning steps fit in context window.
 
 ---
 
