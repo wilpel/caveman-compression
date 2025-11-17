@@ -122,19 +122,24 @@ Keep specific numbers and quantities. Don't replace with vague terms.
 
 ---
 
-### Rule 7: Modifier Minimization
+### Rule 7: Remove Only Intensifiers
 
-Remove adjectives and adverbs UNLESS they carry distinct semantic information.
+Keep adjectives/adverbs that describe requirements. Remove only intensifiers.
 
-**Semantic test**: If removing the modifier changes truth value or adds ambiguity, keep it. Otherwise, remove.
+**Intensifiers to remove**: very, extremely, quite, rather, really, somewhat
 
 ```
-❌ "very important constraint"    → ✅ "constraint"
-❌ "quickly process data"         → ✅ "process data"
-❌ "extremely efficient algorithm"→ ✅ "efficient algorithm" or "O(log n) algorithm"
+❌ "very important constraint" → ✅ "important constraint"
+❌ "extremely fast" → ✅ "fast"
+❌ "quite difficult" → ✅ "difficult"
+```
 
-✅ "key constraint" (if distinguishing from non-key)
-✅ "same number" (same vs. different carries meaning)
+**Keep meaningful descriptors**:
+```
+✅ "quickly" (speed requirement)
+✅ "critical" (priority level)
+✅ "optional" (vs required)
+✅ "same" (vs different)
 ```
 
 ---
