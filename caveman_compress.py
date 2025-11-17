@@ -27,74 +27,19 @@ if not API_KEY:
     print("Error: OPENAI_API_KEY not found. Set environment variable or create .env file", file=sys.stderr)
     sys.exit(1)
 
-COMPRESSION_PROMPT = """You are a caveman compression expert. Convert the following normal English text into caveman compression following these rules:
+# Load prompts from files
+PROMPTS_DIR = Path(__file__).parent / 'prompts'
 
-CRITICAL REQUIREMENT - ZERO INFORMATION LOSS:
-You MUST preserve 100% of semantic information. Every fact, number, adjective with meaning, constraint, and detail must appear in the output. Only remove grammatical scaffolding, NOT content.
+def load_prompt(filename):
+    """Load prompt from prompts directory"""
+    prompt_path = PROMPTS_DIR / filename
+    if not prompt_path.exists():
+        print(f"Error: Prompt file not found: {prompt_path}", file=sys.stderr)
+        sys.exit(1)
+    return prompt_path.read_text()
 
-CORE PRINCIPLES:
-1. Strip connectives (therefore, however, consequently, because, due to, in order to)
-2. Minimize words per statement (target 2-5 words per sentence)
-3. Use action verbs (do, make, fix, check, test, find, need, use, try)
-4. Be concrete over abstract (never "values in range 5-6", always "five or six" or "test five, test six")
-5. No passive voice (never "value is calculated", always "calculate value")
-6. Strip ONLY decorative adjectives/adverbs - KEEP ones with semantic meaning
-
-WHAT TO KEEP (these carry information):
-- Numbers, quantities, sizes (small, medium, large, 5, ten, many)
-- Meaningful adjectives (fast, slow, broken, expensive, critical, optional)
-- Names, places, roles, titles
-- Constraints and conditions
-- All facts and logical steps
-
-WHAT TO REMOVE (these are just grammar):
-- Articles: a, an, the
-- Decorative words: very, quite, rather, somewhat, really
-- Connectives: because, therefore, however, although
-- Passive voice constructions
-- Pronouns (replace with nouns)
-
-EXAMPLES:
-"I am a 26 year old CTO at a medium large company"
-→ "Am 26 years old. Am CTO. Company medium large."
-(Keeps: 26, CTO, medium large)
-
-"The very important database needs to be optimized"
-→ "Important database needs optimization."
-(Keeps: important - has meaning. Removes: very - decorative)
-
-"Use binary search instead of sequential scanning"
-→ "Use binary search. Not sequential scanning."
-(Keeps BOTH methods - what to use AND what to avoid)
-
-REMEMBER: If original mentions what something replaces or contrasts with, KEEP BOTH parts.
-
-Output ONLY the caveman compressed text, nothing else.
-
-TEXT TO COMPRESS:
-{text}"""
-
-DECOMPRESSION_PROMPT = """You are a language expansion expert. Convert the following caveman-compressed text back into proper, fluent English while preserving ALL semantic information.
-
-The caveman text uses:
-- Very short sentences (2-5 words)
-- No connectives
-- Active voice
-- Concrete language
-- Minimal articles
-
-Your task:
-1. Expand sentences to natural English length
-2. Add appropriate connectives (because, therefore, however, etc.)
-3. Add articles (a, an, the) where natural
-4. Ensure smooth flow between sentences
-5. Maintain all facts, constraints, and logical steps
-6. Use proper grammar and style
-
-Output ONLY the expanded English text, nothing else.
-
-CAVEMAN TEXT TO EXPAND:
-{text}"""
+COMPRESSION_PROMPT = load_prompt('compression.txt')
+DECOMPRESSION_PROMPT = load_prompt('decompression.txt')
 
 
 def count_tokens(text):

@@ -1,0 +1,21 @@
+You are a language expansion expert. Convert the following caveman-compressed text back into proper, fluent English while preserving ALL semantic information.
+
+The caveman text uses:
+- Very short sentences (2-5 words)
+- No connectives
+- Active voice
+- Concrete language
+- Minimal articles
+
+Your task:
+1. Expand sentences to natural English length
+2. Add appropriate connectives (because, therefore, however, etc.)
+3. Add articles (a, an, the) where natural
+4. Ensure smooth flow between sentences
+5. Maintain all facts, constraints, and logical steps
+6. Use proper grammar and style
+
+Output ONLY the expanded English text, nothing else.
+
+CAVEMAN TEXT TO EXPAND:
+{text}

@@ -68,26 +68,16 @@ Remove ALL logical connectives unless omission creates ambiguity.
 
 ---
 
-### Rule 4: Verb Selection
+### Rule 4: Active Voice Required
 
-Prioritize short, concrete action verbs.
-
-**Preferred verbs** (1-4 letters):
-- `do`, `make`, `fix`, `run`, `test`, `check`, `find`, `use`, `try`, `add`, `get`, `set`, `put`
-
-**Avoid abstract/formal verbs**:
-- facilitate → help
-- optimize → improve / speed up → "make faster"
-- implement → add / create / build
-- utilize → use
-- conceptualize → think / plan
+Use active voice. Avoid passive constructions.
 
 ```
-❌ "Optimize database performance"
-✅ "Make database faster"
+❌ "The value is calculated by the function"
+✅ "Function calculates value"
 
-❌ "Implement authentication mechanism"
-✅ "Add user login"
+❌ "The database was optimized"
+✅ "Optimized database"
 ```
 
 ---

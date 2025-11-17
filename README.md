@@ -208,6 +208,8 @@ See [SPEC.md](SPEC.md) for full rules.
 
 - [SPEC.md](SPEC.md) - Full specification and rules
 - [examples/](examples/) - Before/after samples
+- [prompts/compression.txt](prompts/compression.txt) - System prompt for compression
+- [prompts/decompression.txt](prompts/decompression.txt) - System prompt for decompression
 
 ---
 
