@@ -114,22 +114,22 @@ MUST use active voice and present tense unless temporal distinction is semantica
 
 ### Rule 6: Specificity Requirement
 
-Replace abstract references with concrete instances.
+Replace vague quantities with specific ones.
 
-**Abstract → Concrete transformations**:
+**Vague → Specific transformations**:
 
-| ❌ Abstract | ✅ Concrete |
+| ❌ Vague | ✅ Specific |
 |------------|------------|
-| "values in range 5-6" | "five or six" |
-| "test all options" | "test option A, test option B, test option C" |
-| "several variables" | "three variables" or "variables X Y Z" |
-| "some constraints" | "two constraints" or list specific constraints |
+| "several variables" | "three variables" |
+| "some constraints" | "two constraints" |
+| "many requests" | "50 million requests" |
+| "a few engineers" | "15 engineers" |
 
-**Rationale**: Abstract language often hides uncertainty or requires additional parsing by the reader.
+**Rationale**: Specific numbers preserve information, vague terms lose it.
 
 ```
-❌ "Test values from five to eight"
-✅ "Test five. Test six. Test seven. Test eight."
+❌ "The system handles a large number of daily requests"
+✅ "System handles 50 million daily requests"
 ```
 
 ---
@@ -221,17 +221,19 @@ Every inference step MUST be explicit. No implicit logical leaps allowed.
 
 ### Lists and Enumerations
 
-**Prefer explicit enumeration** over collective references.
+Keep collective references when already concise.
 
 ```
-❌ "Check all cups"
-✅ "Check cup one. Check cup two. Check cup three."
+✅ "Check all connections"
+✅ "Verify each service"
+✅ "Test three endpoints"
 ```
 
-**Exception**: When list exceeds 5 items, use collective reference with count.
+Only enumerate when specificity adds information:
 
 ```
-✅ "Check all ten cups. Cup one contains five. Cup two contains five..."
+❌ "Install dependencies A, B, and C"
+✅ "Install dependencies: React, Node, PostgreSQL"
 ```
 
 ---
