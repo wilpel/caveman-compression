@@ -21,7 +21,7 @@ WHAT TO REMOVE (these are just grammar):
 - Decorative words: very, quite, rather, somewhat, really
 - Connectives: because, therefore, however, although
 - Passive voice constructions
-- Pronouns (replace with nouns)
+- Ambiguous pronouns (replace with nouns when unclear)
 
 EXAMPLES:
 "I am a 26 year old CTO at a medium large company"

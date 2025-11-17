@@ -68,31 +68,17 @@ Remove ALL logical connectives unless omission creates ambiguity.
 
 ---
 
-### Rule 4: Active Voice Required
+### Rule 4: Active Voice and Present Tense
 
-Use active voice. Avoid passive constructions.
+Use active voice and present tense unless temporal distinction is critical.
 
-```
-❌ "The value is calculated by the function"
-✅ "Function calculates value"
-
-❌ "The database was optimized"
-✅ "Optimized database"
-```
-
----
-
-### Rule 5: Voice and Tense
-
-MUST use active voice and present tense unless temporal distinction is semantically critical.
-
-**Active Voice Required**:
+**Active voice**:
 ```
 ❌ "The value is calculated by the function"
 ✅ "Function calculates value"
 ```
 
-**Present Tense Default**:
+**Present tense**:
 ```
 ❌ "Will need to check constraints"
 ✅ "Need check constraints"
@@ -102,7 +88,7 @@ MUST use active voice and present tense unless temporal distinction is semantica
 
 ---
 
-### Rule 6: Preserve Specifics
+### Rule 5: Preserve Specifics
 
 Keep specific numbers and quantities. Don't replace with vague terms.
 
@@ -122,7 +108,7 @@ Keep specific numbers and quantities. Don't replace with vague terms.
 
 ---
 
-### Rule 7: Remove Only Intensifiers
+### Rule 6: Remove Only Intensifiers
 
 Keep adjectives/adverbs that describe requirements. Remove only intensifiers.
 
@@ -144,7 +130,7 @@ Keep adjectives/adverbs that describe requirements. Remove only intensifiers.
 
 ---
 
-### Rule 8: Article Omission
+### Rule 7: Article Omission
 
 Omit articles (`a`, `an`, `the`) when context provides sufficient specificity.
 
@@ -160,7 +146,7 @@ Omit articles (`a`, `an`, `the`) when context provides sufficient specificity.
 
 ---
 
-### Rule 9: Pronoun Handling
+### Rule 8: Pronoun Handling
 
 Keep short pronouns (it, we, he, she) when unambiguous. Only replace when ambiguous.
 
@@ -175,7 +161,7 @@ Keep short pronouns (it, we, he, she) when unambiguous. Only replace when ambigu
 
 ---
 
-### Rule 10: Logical Completeness
+### Rule 9: Logical Completeness
 
 Every inference step MUST be explicit. No implicit logical leaps allowed.
 
@@ -244,17 +230,6 @@ Only enumerate when specificity adds information:
 
 ---
 
-### Negative Statements
-
-**Use explicit negation** rather than implicit absence.
-
-```
-❌ "No error found"          → ✅ "Error not found"
-❌ "Function doesn't return" → ✅ "Function returns nothing"
-```
-
----
-
 ## Validation Algorithm
 
 To verify Caveman Compression correctness:
@@ -309,32 +284,21 @@ To verify Caveman Compression correctness:
 
 ---
 
-### Anti-Pattern 4: False Concreteness
-
-```
-❌ "Test five to eight" → "Test five through eight"
-✅ "Test five to eight" → "Test five. Test six. Test seven. Test eight."
-```
-
-**Problem**: "Through" is still abstract; must enumerate.
-
----
-
 ## Conformance Levels
 
 ### Level 1: Basic Caveman
-- Rules 1-5 applied
-- 15-20% token reduction typical
+- Rules 1-4 applied
+- 15-25% token reduction typical
 - Sufficient for most use cases
 
 ### Level 2: Strict Caveman
-- Rules 1-8 applied
-- 20-30% token reduction typical
+- Rules 1-7 applied
+- 25-40% token reduction typical
 - Recommended for token-constrained contexts
 
 ### Level 3: Maximum Caveman
-- All rules applied rigorously
-- 30-40% token reduction typical
+- All 9 rules applied rigorously
+- 40-60% token reduction typical
 - Use only when token cost is critical
 
 ---
