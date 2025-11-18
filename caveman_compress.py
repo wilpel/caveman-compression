@@ -10,17 +10,17 @@ import argparse
 from pathlib import Path
 from openai import OpenAI
 
-# Try to get API key from environment variable or matrix-social .env file
+# Try to get API key from environment variable or local .env file
 API_KEY = os.getenv('OPENAI_API_KEY')
 
 if not API_KEY:
-    # Try to read from matrix-social .env file
-    matrix_social_env = Path(__file__).parent.parent / 'matrix-social' / 'backend' / '.env'
-    if matrix_social_env.exists():
-        with open(matrix_social_env, 'r') as f:
+    # Try to read from local .env file
+    env_file = Path(__file__).parent / '.env'
+    if env_file.exists():
+        with open(env_file, 'r') as f:
             for line in f:
                 if line.startswith('OPENAI_API_KEY='):
-                    API_KEY = line.split('=', 1)[1].strip()
+                    API_KEY = line.split('=', 1)[1].strip().strip('"\'')
                     break
 
 if not API_KEY:

@@ -66,6 +66,10 @@ Decompressed: "at a medium-large company based in Stockholm"
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# Set up API key
+cp .env.example .env
+# Edit .env and add your OpenAI API key
 ```
 
 **NLP-based (free, offline, multilingual):**
@@ -184,6 +188,16 @@ Authenticate API. Include API key in Authorization header every request. Prefix 
 
 All examples validated with GPT-4o. See [examples/](examples/) for full text.
 
+### Semantic Losslessness
+
+Run automated tests to verify compression preserves semantic information:
+
+```bash
+python benchmark/run_benchmark.py
+```
+
+Tests whether LLMs can answer comprehension questions equally well from compressed vs original text. See [benchmark/](benchmark/) for details.
+
 ---
 
 ## Core Principles
@@ -262,6 +276,7 @@ See [SPEC.md](SPEC.md) for full rules.
 
 - [SPEC.md](SPEC.md) - Full specification and rules
 - [examples/](examples/) - Before/after samples
+- [benchmark/](benchmark/) - Semantic losslessness tests
 - [prompts/compression.txt](prompts/compression.txt) - System prompt for compression
 - [prompts/decompression.txt](prompts/decompression.txt) - System prompt for decompression
 
