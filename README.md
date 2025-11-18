@@ -61,27 +61,38 @@ Decompressed: "at a medium-large company based in Stockholm"
 
 ### Installation
 
+**LLM-based (best compression, requires OpenAI API):**
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**NLP-based (free, offline, multilingual):**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-nlp.txt
+python -m spacy download en_core_web_sm  # or other language models
+```
+
 ### Usage
 
-**Compress:**
+**LLM-based compression (40-58% reduction):**
 ```bash
 python caveman_compress.py compress "Your verbose text here"
+python caveman_compress.py compress -f input.txt -o output.txt
+```
+
+**NLP-based compression (15-30% reduction, free, offline):**
+```bash
+python caveman_compress_nlp.py compress "Your verbose text here"
+python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
 ```
 
 **Decompress:**
 ```bash
 python caveman_compress.py decompress "Caveman text here"
-```
-
-**From file:**
-```bash
-python caveman_compress.py compress -f input.txt -o output.txt
 ```
 
 ---
@@ -209,6 +220,25 @@ See [SPEC.md](SPEC.md) for full rules.
 > Need understand user request. User wants optimal route between cities. Consider distance, traffic. Step one: Identify starting city, destination city. Step two: Retrieve current traffic data for routes...
 
 **Why it works:** Agent thinks in caveman format during problem-solving. Chain-of-thought uses 50% fewer tokens. More reasoning steps fit in context window.
+
+---
+
+## Compression Methods
+
+### LLM-based (`caveman_compress.py`)
+- **Reduction:** 40-58%
+- **Cost:** Requires OpenAI API key
+- **Quality:** Best compression, context-aware
+- **Speed:** ~2s per request
+- **Use when:** Maximum token savings needed
+
+### NLP-based (`caveman_compress_nlp.py`)
+- **Reduction:** 15-30%
+- **Cost:** Free
+- **Quality:** Good compression, rule-based
+- **Speed:** <100ms
+- **Languages:** 15+ supported (en, es, de, fr, it, pt, nl, el, nb, lt, ja, zh, pl, ro, ru, and more)
+- **Use when:** Working offline, processing large volumes, no API budget, or need multilingual support
 
 ---
 
