@@ -47,22 +47,111 @@ def count_tokens(text):
     return len(text.strip()) // 4
 
 
+def is_text_content(text):
+    """Detect if content is natural language text vs code/structured data"""
+    # Check for common code indicators
+    code_indicators = [
+        'def ', 'class ', 'function ', 'import ', 'const ', 'let ', 'var ',
+        'public ', 'private ', 'protected ', '#include', 'package ',
+        '=>', '->', '::', '!=', '==', '<=', '>=', '&&', '||',
+    ]
+
+    # Count code-like patterns
+    code_score = sum(1 for indicator in code_indicators if indicator in text)
+
+    # Check for balanced braces/brackets (common in code)
+    brace_count = text.count('{') + text.count('}') + text.count('[') + text.count(']')
+
+    # Check for natural language indicators
+    words = text.split()
+    if len(words) < 5:
+        return True  # Short text, treat as natural language
+
+    # If high code indicators or many braces, treat as code
+    if code_score >= 2 or brace_count > len(words) * 0.2:
+        return False
+
+    return True
+
+
+def split_sentences(text):
+    """Split text into sentences by period, preserving sentence boundaries"""
+    # Simple sentence splitting by periods followed by space or end of string
+    import re
+    # Split on '. ' or '.\n' or '. \n' but keep the period
+    sentences = re.split(r'\.(\s+)', text)
+
+    # Reconstruct sentences with their periods
+    result = []
+    i = 0
+    while i < len(sentences):
+        if sentences[i].strip():
+            sentence = sentences[i]
+            # Add back the period if this isn't the last fragment
+            if i + 1 < len(sentences):
+                sentence = sentence + '.'
+            result.append(sentence.strip())
+        i += 2 if i + 1 < len(sentences) else 1
+
+    return result
+
+
 def compress_text(text, model="gpt-4o"):
     """Compress normal English to caveman compression"""
     client = OpenAI(api_key=API_KEY)
 
-    prompt = COMPRESSION_PROMPT.format(text=text)
+    # Detect if this is natural language text
+    is_text = is_text_content(text)
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are an expert at caveman compression."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3,
-    )
+    # If it's text, use sentence-by-sentence compression with gpt-4o-mini
+    if is_text:
+        sentences = split_sentences(text)
 
-    compressed = response.choices[0].message.content.strip()
+        # If only one sentence or very short, compress as whole
+        if len(sentences) <= 1:
+            model = "gpt-4o-mini"
+            prompt = COMPRESSION_PROMPT.format(text=text)
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are an expert at caveman compression."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+            )
+            compressed = response.choices[0].message.content.strip()
+        else:
+            # Compress sentence by sentence with gpt-4o-mini
+            compressed_sentences = []
+            for sentence in sentences:
+                if not sentence.strip():
+                    continue
+
+                prompt = COMPRESSION_PROMPT.format(text=sentence)
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are an expert at caveman compression."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                )
+                compressed_sent = response.choices[0].message.content.strip()
+                compressed_sentences.append(compressed_sent)
+
+            compressed = ' '.join(compressed_sentences)
+    else:
+        # For code/structured data, use original model and compress as whole
+        prompt = COMPRESSION_PROMPT.format(text=text)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are an expert at caveman compression."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+        )
+        compressed = response.choices[0].message.content.strip()
 
     # Calculate statistics
     original_tokens = count_tokens(text)
