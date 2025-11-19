@@ -1,0 +1,24 @@
+{
+  "test_texts": [
+    {
+      "id": "technical_documentation",
+      "text": "To authenticate with our API, you need to include your API key in the Authorization header of every request. The API key should be prefixed with the word 'Bearer' followed by a space. If authentication fails, the server will return a 401 Unauthorized status code along with an error message explaining the reason for the failure."
+    },
+    {
+      "id": "system_prompt",
+      "text": "You are a helpful AI assistant designed to provide accurate and concise responses to user queries. When answering questions, you should always prioritize clarity and correctness over speed. If you are uncertain about any information, you must explicitly state your uncertainty rather than guessing. For complex problems, break them down into smaller, manageable steps and explain your reasoning clearly at each stage."
+    },
+    {
+      "id": "product_description",
+      "text": "Our enterprise cloud storage solution provides secure, scalable file management for businesses of all sizes. With 99.9% uptime guarantee, automatic backups every 6 hours, and military-grade AES-256 encryption, your data is always protected. The platform supports over 50 file types and integrates seamlessly with popular productivity tools like Microsoft Office, Google Workspace, and Slack."
+    },
+    {
+      "id": "news_article",
+      "text": "Scientists at Stanford University have developed a new machine learning algorithm that can predict protein structures with 95% accuracy, a significant improvement over previous methods. The breakthrough, published in Nature on January 15, 2024, could accelerate drug discovery by reducing the time needed to understand how proteins fold. Dr. Sarah Chen, lead researcher on the project, stated that this technology has the potential to revolutionize pharmaceutical research."
+    },
+    {
+      "id": "instructions",
+      "text": "First, preheat your oven to 375 degrees Fahrenheit. While the oven is heating, mix together 2 cups of flour, 1 teaspoon of baking powder, and half a teaspoon of salt in a large bowl. In a separate bowl, cream together the butter and sugar until light and fluffy, approximately 3-5 minutes. Add the eggs one at a time, beating well after each addition. Gradually fold the dry ingredients into the wet mixture until just combined."
+    }
+  ]
+}
