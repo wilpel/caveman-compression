@@ -1,0 +1,68 @@
+{
+  "test_cases": [
+    {
+      "id": "comprehensive_report",
+      "text": "Q4 2023 Company Performance Report for TechVentures Inc.\n\nExecutive Summary:\nTechVentures Inc., headquartered at 456 Innovation Drive, San Francisco, CA 94103, concluded Q4 2023 with record-breaking performance. CEO Jennifer Martinez and CFO Robert Chen presented the results on January 15, 2024, to the board of directors.\n\nFinancial Highlights:\nTotal revenue reached $127.5 million, representing a 34% year-over-year increase from Q4 2022's $95.1 million. Gross profit margin improved to 68%, up from 62% in the previous year. Operating expenses totaled $56.3 million, including $23.1 million in R&D, $18.7 million in sales and marketing, and $14.5 million in general and administrative costs. Net income was $30.2 million, yielding an earnings per share (EPS) of $2.47 on 12.2 million outstanding shares.\n\nProduct Performance:\nThe flagship product, CloudSync Pro, generated $78.4 million in revenue with 45,000 enterprise customers, each paying an average of $1,742 per month. The new AI Analytics Suite, launched on October 3, 2023, exceeded expectations with 8,500 customers and $22.1 million in revenue despite being available for only three months. The mobile application reached 2.3 million downloads across iOS and Android platforms.\n\nOperational Metrics:\nEmployee headcount grew to 847 full-time employees, up from 623 at the end of Q3 2023. The engineering team expanded by 89 people, now comprising 312 engineers. Customer satisfaction score (CSAT) improved to 4.6 out of 5.0, while Net Promoter Score (NPS) reached 72. Average customer acquisition cost (CAC) decreased to $3,200, while customer lifetime value (LTV) increased to $28,500, resulting in an LTV:CAC ratio of 8.9:1.\n\nGeographic Expansion:\nNorth American operations generated $89.2 million (70% of revenue), European operations contributed $28.7 million (22.5%), and the Asia-Pacific region accounted for $9.6 million (7.5%). New offices opened in London, UK on November 12, 2023, and Berlin, Germany on December 1, 2023. The company plans to open a Tokyo office on March 15, 2024, and a Singapore office on May 20, 2024.\n\nStrategic Partnerships:\nOn November 28, 2023, TechVentures announced a three-year partnership with DataFlow Systems worth $45 million. A strategic alliance with CloudCompute Inc., valued at $23 million over two years, was signed on December 14, 2023. These partnerships are expected to drive an additional $15-20 million in annual revenue starting in 2024.\n\nTechnology Infrastructure:\nThe company migrated 85% of its infrastructure to Kubernetes, reducing cloud costs by $2.3 million annually. System uptime improved to 99.97%, up from 99.89% in Q3 2023. Data processing capacity increased to 15 petabytes per day, handling requests with an average latency of 47 milliseconds.\n\nResearch and Development:\nR&D team filed 12 new patent applications in Q4, bringing the total patent portfolio to 67 granted patents and 34 pending applications. The machine learning team trained 23 new models, with the flagship recommendation engine achieving 94.2% accuracy, a 3.1 percentage point improvement from the previous quarter.\n\nCustomer Success:\nThe enterprise support team resolved 15,847 tickets with an average resolution time of 3.2 hours. Premium support customers (1,245 accounts) received dedicated account managers and experienced 99.5% issue resolution within SLA timeframes. Customer retention rate reached 96.3%, the highest in company history.\n\n2024 Outlook:\nFor Q1 2024, the company projects revenue between $135-142 million, representing 28-35% year-over-year growth. Full-year 2024 revenue guidance is set at $580-620 million, with expected EBITDA margin of 26-28%. The company plans to hire an additional 200 employees throughout 2024, with 60% focused on engineering and product development.",
+      "fact_checks": [
+        {
+          "fact": "Total revenue was $127.5 million",
+          "question": "What was the total revenue?"
+        },
+        {
+          "fact": "CEO is Jennifer Martinez",
+          "question": "Who is the CEO?"
+        },
+        {
+          "fact": "CloudSync Pro has 45,000 enterprise customers",
+          "question": "How many enterprise customers does CloudSync Pro have?"
+        },
+        {
+          "fact": "London office opened on November 12, 2023",
+          "question": "When did the London office open?"
+        },
+        {
+          "fact": "Customer retention rate is 96.3%",
+          "question": "What is the customer retention rate?"
+        }
+      ]
+    },
+    {
+      "id": "cat_basement_news",
+      "text": "LOCAL MAN DISCOVERS CATS HAVE BEEN HOLDING SECRET MEETINGS IN HIS BASEMENT\nSuburban homeowner reports feline parliament has been convening nightly since 2019\nSPRINGFIELD - Area resident Tom Henderson, 42, was shocked to discover this Tuesday that his three cats have been hosting elaborate neighborhood cat councils in his basement for the past five years.\n\"I heard what sounded like a gavel,\" Henderson told reporters. \"When I opened the basement door, there were at least fifteen cats sitting in a perfect semicircle around my workbench. My cat Mr. Whiskers was standing on a box giving what appeared to be a keynote address.\"\nHenderson claims the cats scattered immediately, but not before he observed a small podium constructed from cardboard and what appeared to be a voting system using ping pong balls.\n\"They had charts,\" Henderson said, still visibly shaken. \"Actual charts. I don't know how, but they did.\"\nLocal veterinarian Dr. Sarah Chen expressed skepticism about the claims. \"Cats are highly intelligent, but the likelihood of them organizing formal parliamentary proceedings is extremely low,\" Dr. Chen stated. \"Then again, I've never actually checked my own basement at 2 AM.\"\nHenderson's neighbor, Patricia Moore, wasn't surprised by the news. \"My cat Senator Fluffington comes home every Tuesday with what looks like meeting minutes stuck to his fur,\" Moore explained. \"I just assumed he was getting into the recycling.\"\nAt press time, Henderson reported finding a tiny briefcase hidden behind his water heater.",
+      "fact_checks": [
+        {
+          "fact": "Tom Henderson is 42 years old and the meetings have been happening since 2019",
+          "question": "How old is Tom Henderson and when did the meetings start?"
+        },
+        {
+          "fact": "Henderson said he heard what sounded like a gavel",
+          "question": "What did Henderson say he heard?"
+        },
+        {
+          "fact": "There were at least fifteen cats sitting in a perfect semicircle around the workbench",
+          "question": "How many cats were there and how were they arranged?"
+        },
+        {
+          "fact": "The podium was constructed from cardboard and there was a voting system using ping pong balls",
+          "question": "What was the podium made of and what voting system was there?"
+        },
+        {
+          "fact": "Henderson's cat is named Mr. Whiskers",
+          "question": "What is the name of Henderson's cat?"
+        },
+        {
+          "fact": "Dr. Sarah Chen is a local veterinarian",
+          "question": "Who is Dr. Sarah Chen?"
+        },
+        {
+          "fact": "Dr. Chen said cats are highly intelligent but the likelihood of them organizing formal parliamentary proceedings is extremely low",
+          "question": "What did Dr. Chen say about cats organizing parliamentary proceedings?"
+        },
+        {
+          "fact": "Moore's cat Senator Fluffington comes home every Tuesday with what looks like meeting minutes stuck to his fur",
+          "question": "What happens with Moore's cat Senator Fluffington every Tuesday?"
+        }
+      ]
+    }
+  ]
+}
