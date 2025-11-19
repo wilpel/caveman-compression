@@ -114,7 +114,7 @@ def compress_text(text, model="gpt-4o"):
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are an expert at caveman compression."},
+                    {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
@@ -131,7 +131,7 @@ def compress_text(text, model="gpt-4o"):
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "You are an expert at caveman compression."},
+                        {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.3,
@@ -146,7 +146,7 @@ def compress_text(text, model="gpt-4o"):
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are an expert at caveman compression."},
+                {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
