@@ -46,9 +46,6 @@ LLMs excel at filling linguistic gaps. They predict missing grammar, connectives
 - Constraints: "medium-large", "frequently accessed"
 - Specifics: "Stockholm", "99.9% uptime"
 
-**Why no hallucination:**
-The compressed version contains all semantic content. When decompressing, the LLM reconstructs grammar around preserved facts—it cannot hallucinate details that are already specified.
-
 ```
 Compressed: "Company medium-large. Location Stockholm."
 Decompressed: "at a medium-large company based in Stockholm"
