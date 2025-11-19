@@ -42,37 +42,6 @@ python benchmark/embedding_similarity/run_embedding_benchmark_nlp.py --lang es
   - **0.85-0.89**: Moderate - noticeable but acceptable drift
   - **<0.85**: Poor - significant semantic drift
 
-## Benchmark Results
+## Expected Results
 
-### Latest Results (LLM-based Compression)
-
-```
-Model: gpt-4o-mini
-Embedding Model: text-embedding-3-large
-Test Cases: 5
-
-[1/5] technical_documentation
-  Compression: 34.0% (329 → 217 chars)
-  Cosine similarity: 0.8409 ✗ Poor
-
-[2/5] system_prompt
-  Compression: 24.7% (417 → 314 chars)
-  Cosine similarity: 0.8813 ⚠ Moderate
-
-[3/5] product_description
-  Compression: 13.8% (391 → 337 chars)
-  Cosine similarity: 0.9679 ✓ Excellent
-
-[4/5] news_article
-  Compression: 17.8% (473 → 389 chars)
-  Cosine similarity: 0.9704 ✓ Excellent
-
-[5/5] instructions
-  Compression: 24.5% (428 → 323 chars)
-  Cosine similarity: 0.9501 ✓ Excellent
-
-Average Cosine Similarity: 0.9221 (Good)
-Average Compression Ratio: 23.0%
-```
-
-**Key Finding:** Compression maintains **≥0.92 average semantic similarity** with 23% size reduction, proving semantic meaning is well-preserved in vector space. This is critical for RAG systems where compressed documents need to maintain searchability.
+High-quality compression should maintain **cosine similarity ≥0.90** even with 20-40% token reduction, proving that semantic meaning is preserved in vector space.
