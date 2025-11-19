@@ -82,16 +82,17 @@ python -m spacy download en_core_web_sm  # or other language models
 
 ### Usage
 
-**LLM-based compression (40-58% reduction):**
+**NLP-based compression (most stable, 15-30% reduction, free, offline):**
+```bash
+python caveman_compress_nlp.py compress "Your verbose text here"
+python caveman_compress_nlp.py compress -f input.txt -o output.txt
+python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
+```
+
+**LLM-based compression (40-58% reduction, requires API key):**
 ```bash
 python caveman_compress.py compress "Your verbose text here"
 python caveman_compress.py compress -f input.txt -o output.txt
-```
-
-**NLP-based compression (15-30% reduction, free, offline):**
-```bash
-python caveman_compress_nlp.py compress "Your verbose text here"
-python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
 ```
 
 **Decompress:**

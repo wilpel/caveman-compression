@@ -76,6 +76,10 @@ def is_text_content(text):
 
 def split_sentences(text):
     """Split text into sentences by period, preserving sentence boundaries"""
+    # If no period in text, return as single sentence
+    if '.' not in text:
+        return [text]
+
     # Simple sentence splitting by periods followed by space or end of string
     import re
     # Split on '. ' or '.\n' or '. \n' but keep the period
@@ -93,7 +97,7 @@ def split_sentences(text):
             result.append(sentence.strip())
         i += 2 if i + 1 < len(sentences) else 1
 
-    return result
+    return result if result else [text]
 
 
 def compress_text(text, model="gpt-4o"):
