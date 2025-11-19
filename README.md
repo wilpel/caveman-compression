@@ -180,6 +180,24 @@ Authenticate API. Include API key in Authorization header every request. Prefix 
 
 ## Benchmarks
 
+### Factual Preservation
+
+Automated benchmark verifying that specific facts are preserved and retrievable after compression:
+
+```bash
+# LLM-based compression
+python benchmark/factual_preservation/run_factual_benchmark.py
+
+# NLP-based compression
+python benchmark/factual_preservation/run_factual_benchmark_nlp.py
+```
+
+**Results:** 13/13 facts preserved (100%) with 12-25% compression ratio.
+
+See [benchmark/factual_preservation/](benchmark/factual_preservation/) for details.
+
+### Example Reductions
+
 | Test Case | Original | Compressed | Reduction |
 |-----------|----------|------------|-----------|
 | System prompt | 171 tokens | 72 tokens | **58%** |
@@ -188,16 +206,6 @@ Authenticate API. Include API key in Authorization header every request. Prefix 
 | **Average** | **170** | **102** | **40%** |
 
 All examples validated with GPT-4o. See [examples/](examples/) for full text.
-
-### Semantic Losslessness
-
-Run automated tests to verify compression preserves semantic information:
-
-```bash
-python benchmark/run_benchmark.py
-```
-
-Tests whether LLMs can answer comprehension questions equally well from compressed vs original text. See [benchmark/](benchmark/) for details.
 
 ---
 
