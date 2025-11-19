@@ -76,15 +76,36 @@ The `test_data.json` file contains test cases with:
    - Verifies the answer contains all essential information
 4. Generates a detailed report with preservation rates and compression ratios
 
-## Example
+## Benchmark Results
 
-**Fact:** "Henderson said the exact quote: 'I heard what sounded like a gavel'"
+### Latest Results (LLM-based Compression)
 
-**Question Generated:** "What exact quote did Henderson say?"
+```
+Running Factual Preservation Benchmark
+Model: gpt-4o-mini
+Test Cases: 2
 
-**Answer from Compressed Text:** "I heard what sounded like a gavel," Henderson told reporters...
+[1/2] Testing: comprehensive_report
+  Compression: 12.2% (3795 → 3331 chars)
+  Results: 5/5 facts preserved (100.0%)
 
-**Verification:** ✓ HIGH confidence - Exact quote preserved in its entirety
+[2/2] Testing: cat_basement_news
+  Compression: 25.0% (1529 → 1147 chars)
+  Results: 8/8 facts preserved (100.0%)
+
+Overall: 13/13 facts preserved (100.0%)
+Average Compression: 18.6%
+```
+
+### Example Fact Verification
+
+**Fact:** "Henderson said he heard what sounded like a gavel"
+
+**Question:** "What did Henderson say he heard?"
+
+**Answer from Compressed Text:** "Henderson said he heard what sounded like a gavel."
+
+**Verification:** ✓ HIGH confidence - Exact quote preserved with uncertainty qualifier "what sounded like"
 
 ## Output
 
