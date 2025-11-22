@@ -9,6 +9,7 @@ import sys
 import argparse
 from pathlib import Path
 from openai import OpenAI
+import spacy
 
 # Try to get API key from environment variable or local .env file
 API_KEY = os.getenv('OPENAI_API_KEY')
@@ -40,6 +41,28 @@ def load_prompt(filename):
 
 COMPRESSION_PROMPT = load_prompt('compression.txt')
 DECOMPRESSION_PROMPT = load_prompt('decompression.txt')
+
+
+# Language model cache
+_nlp_models = {}
+
+def get_nlp_model(lang='en'):
+    """Load or retrieve cached spaCy model"""
+    if lang in _nlp_models:
+        return _nlp_models[lang]
+
+    model_name = 'en_core_web_sm'  # Hardcoding for this script
+
+    try:
+        nlp = spacy.load(model_name)
+    except OSError:
+        print(f"Error: spaCy model '{model_name}' not found.", file=sys.stderr)
+        print(f"Please install it by running:", file=sys.stderr)
+        print(f"  python -m spacy download {model_name}", file=sys.stderr)
+        sys.exit(1)
+
+    _nlp_models[lang] = nlp
+    return nlp
 
 
 def count_tokens(text):
@@ -75,29 +98,10 @@ def is_text_content(text):
 
 
 def split_sentences(text):
-    """Split text into sentences by period, preserving sentence boundaries"""
-    # If no period in text, return as single sentence
-    if '.' not in text:
-        return [text]
-
-    # Simple sentence splitting by periods followed by space or end of string
-    import re
-    # Split on '. ' or '.\n' or '. \n' but keep the period
-    sentences = re.split(r'\.(\s+)', text)
-
-    # Reconstruct sentences with their periods
-    result = []
-    i = 0
-    while i < len(sentences):
-        if sentences[i].strip():
-            sentence = sentences[i]
-            # Add back the period if this isn't the last fragment
-            if i + 1 < len(sentences):
-                sentence = sentence + '.'
-            result.append(sentence.strip())
-        i += 2 if i + 1 < len(sentences) else 1
-
-    return result if result else [text]
+    """Split text into sentences using spaCy"""
+    nlp = get_nlp_model()
+    doc = nlp(text)
+    return [sent.text for sent in doc.sents]
 
 
 def compress_text(text, model="gpt-4o"):
