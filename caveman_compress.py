@@ -10,22 +10,7 @@ import argparse
 from pathlib import Path
 from openai import OpenAI
 
-# Try to get API key from environment variable or local .env file
-API_KEY = os.getenv('OPENAI_API_KEY')
-
-if not API_KEY:
-    # Try to read from local .env file
-    env_file = Path(__file__).parent / '.env'
-    if env_file.exists():
-        with open(env_file, 'r') as f:
-            for line in f:
-                if line.startswith('OPENAI_API_KEY='):
-                    API_KEY = line.split('=', 1)[1].strip().strip('"\'')
-                    break
-
-if not API_KEY:
-    print("Error: OPENAI_API_KEY not found. Set environment variable or create .env file", file=sys.stderr)
-    sys.exit(1)
+from .utils import load_api_key
 
 # Load prompts from files
 PROMPTS_DIR = Path(__file__).parent / 'prompts'
@@ -102,7 +87,7 @@ def split_sentences(text):
 
 def compress_text(text, model="gpt-4o"):
     """Compress normal English to caveman compression"""
-    client = OpenAI(api_key=API_KEY)
+    client = OpenAI(api_key=load_api_key())
 
     # Detect if this is natural language text
     is_text = is_text_content(text)
@@ -167,7 +152,7 @@ def compress_text(text, model="gpt-4o"):
 
 def decompress_text(text, model="gpt-4o"):
     """Decompress caveman compression to normal English"""
-    client = OpenAI(api_key=API_KEY)
+    client = OpenAI(api_key=load_api_key())
 
     prompt = DECOMPRESSION_PROMPT.format(text=text)
 
