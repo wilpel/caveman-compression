@@ -77,6 +77,14 @@ pip install -r requirements-nlp.txt
 python -m spacy download en_core_web_sm  # or other language models
 ```
 
+**MLM-based (free, offline, predictability-aware):**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-mlm.txt
+python -m spacy download en_core_web_sm
+```
+
 ### Usage
 
 **NLP-based compression (most stable, 15-30% reduction, free, offline):**
@@ -84,6 +92,13 @@ python -m spacy download en_core_web_sm  # or other language models
 python caveman_compress_nlp.py compress "Your verbose text here"
 python caveman_compress_nlp.py compress -f input.txt -o output.txt
 python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
+```
+
+**MLM-based compression (20-30% reduction, free, offline, predictability-aware):**
+```bash
+python caveman_compress_mlm.py compress "Your verbose text here"
+python caveman_compress_mlm.py compress -f input.txt -o output.txt
+python caveman_compress_mlm.py compress -f input.txt -k 30  # adjust compression level
 ```
 
 **LLM-based compression (40-58% reduction, requires API key):**
@@ -251,6 +266,14 @@ See [SPEC.md](SPEC.md) for full rules.
 - **Quality:** Best compression, context-aware
 - **Speed:** ~2s per request
 - **Use when:** Maximum token savings needed
+
+### MLM-based (`caveman_compress_mlm.py`)
+- **Reduction:** 20-30%
+- **Cost:** Free
+- **Quality:** Excellent compression, predictability-aware using RoBERTa
+- **Speed:** ~1-5s per document (local model)
+- **Method:** Removes top-k most predictable tokens based on masked language model probabilities
+- **Use when:** Need better compression than NLP without API costs, can tolerate model download (~500MB) and initial loading time
 
 ### NLP-based (`caveman_compress_nlp.py`)
 - **Reduction:** 15-30%

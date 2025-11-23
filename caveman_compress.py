@@ -10,23 +10,9 @@ import argparse
 from pathlib import Path
 from openai import OpenAI
 import spacy
+import numpy as np
 
-# Try to get API key from environment variable or local .env file
-API_KEY = os.getenv('OPENAI_API_KEY')
-
-if not API_KEY:
-    # Try to read from local .env file
-    env_file = Path(__file__).parent / '.env'
-    if env_file.exists():
-        with open(env_file, 'r') as f:
-            for line in f:
-                if line.startswith('OPENAI_API_KEY='):
-                    API_KEY = line.split('=', 1)[1].strip().strip('"\'')
-                    break
-
-if not API_KEY:
-    print("Error: OPENAI_API_KEY not found. Set environment variable or create .env file", file=sys.stderr)
-    sys.exit(1)
+from .utils import load_api_key
 
 # Load prompts from files
 PROMPTS_DIR = Path(__file__).parent / 'prompts'
@@ -104,9 +90,48 @@ def split_sentences(text):
     return [sent.text for sent in doc.sents]
 
 
-def compress_text(text, model="gpt-4o"):
+def get_embedding(client, text, model="text-embedding-3-large"):
+    """Get embedding vector for text"""
+    try:
+        response = client.embeddings.create(
+            input=text,
+            model=model
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        print(f"Warning: Failed to get embedding: {e}", file=sys.stderr)
+        return None
+
+
+def cosine_similarity(vec1, vec2):
+    """Calculate cosine similarity between two vectors"""
+    vec1 = np.array(vec1)
+    vec2 = np.array(vec2)
+
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    return dot_product / (norm1 * norm2)
+
+
+def calculate_embedding_loss(client, original_text, compressed_text, model="text-embedding-3-large"):
+    """Calculate embedding similarity loss between original and compressed text"""
+    original_emb = get_embedding(client, original_text, model)
+    compressed_emb = get_embedding(client, compressed_text, model)
+
+    if original_emb is None or compressed_emb is None:
+        return None
+
+    similarity = cosine_similarity(original_emb, compressed_emb)
+    # Loss is 1 - similarity (0 = perfect preservation, 1 = total loss)
+    loss = 1 - similarity
+    return loss, similarity
+
+
+def compress_text(text, model="gpt-4o", calculate_embeddings=True):
     """Compress normal English to caveman compression"""
-    client = OpenAI(api_key=API_KEY)
+    client = OpenAI(api_key=load_api_key())
 
     # Detect if this is natural language text
     is_text = is_text_content(text)
@@ -166,12 +191,20 @@ def compress_text(text, model="gpt-4o"):
     compressed_tokens = count_tokens(compressed)
     reduction = ((original_tokens - compressed_tokens) / original_tokens * 100) if original_tokens > 0 else 0
 
-    return compressed, original_tokens, compressed_tokens, reduction
+    # Calculate embedding loss if requested
+    embedding_loss = None
+    embedding_similarity = None
+    if calculate_embeddings:
+        result = calculate_embedding_loss(client, text, compressed)
+        if result is not None:
+            embedding_loss, embedding_similarity = result
+
+    return compressed, original_tokens, compressed_tokens, reduction, embedding_loss, embedding_similarity
 
 
 def decompress_text(text, model="gpt-4o"):
     """Decompress caveman compression to normal English"""
-    client = OpenAI(api_key=API_KEY)
+    client = OpenAI(api_key=load_api_key())
 
     prompt = DECOMPRESSION_PROMPT.format(text=text)
 
@@ -267,7 +300,7 @@ Examples:
         print(f"{input_text}\n")
 
         print("Compressing...\n")
-        result, orig_tokens, comp_tokens, reduction = compress_text(input_text, args.model)
+        result, orig_tokens, comp_tokens, reduction, emb_loss, emb_sim = compress_text(input_text, args.model)
 
         print("CAVEMAN COMPRESSED:")
         print(f"{result}\n")
@@ -277,6 +310,19 @@ Examples:
         print(f"  Original:   {len(input_text):4d} chars ≈ {orig_tokens:3d} tokens")
         print(f"  Compressed: {len(result):4d} chars ≈ {comp_tokens:3d} tokens")
         print(f"  Reduction:  {reduction:.1f}%")
+
+        if emb_loss is not None and emb_sim is not None:
+            print(f"\n  Embedding Similarity: {emb_sim:.4f}")
+            print(f"  Embedding Loss:       {emb_loss:.4f}")
+            if emb_sim >= 0.95:
+                print(f"  Quality: Excellent - virtually identical semantic meaning")
+            elif emb_sim >= 0.90:
+                print(f"  Quality: Good - minor semantic drift")
+            elif emb_sim >= 0.85:
+                print(f"  Quality: Moderate - noticeable drift")
+            else:
+                print(f"  Quality: Poor - significant semantic drift")
+
         print(f"{'='*60}\n")
 
     else:  # decompress

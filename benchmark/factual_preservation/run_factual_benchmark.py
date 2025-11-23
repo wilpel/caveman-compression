@@ -29,26 +29,7 @@ except ImportError:
 
 import os
 
-
-def load_api_key():
-    """Load OpenAI API key from environment or .env file"""
-    # Try environment variable first
-    api_key = os.environ.get('OPENAI_API_KEY')
-
-    # Try local .env file
-    if not api_key:
-        env_path = Path(__file__).parent.parent.parent / '.env'
-        if env_path.exists():
-            for line in env_path.read_text().splitlines():
-                if line.startswith('OPENAI_API_KEY='):
-                    api_key = line.split('=', 1)[1].strip().strip('"\'')
-                    break
-
-    if not api_key:
-        print("Error: OPENAI_API_KEY not found. Set OPENAI_API_KEY environment variable or create .env file", file=sys.stderr)
-        sys.exit(1)
-
-    return api_key
+from utils import load_api_key
 
 
 def compress_text(text, model="gpt-4o"):
