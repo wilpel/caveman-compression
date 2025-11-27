@@ -95,7 +95,7 @@ def get_mlm_probability(model, tokenizer, device, sentence, word_idx):
     except Exception:
         return 0.0
 
-def compress_text(text, prob_threshold=1e-5):
+def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_ner=True):
     """
     Apply MLM-based compression by removing words whose predictability exceeds threshold.
 
@@ -109,11 +109,19 @@ def compress_text(text, prob_threshold=1e-5):
             1e-4: Moderate (19% reduction)
             1e-5: Balanced (32% reduction) [DEFAULT]
             1e-6: Aggressive (54% reduction)
+        no_adjacent_removal: If True, never remove two adjacent words. When both
+            exceed threshold, only remove the one with higher probability.
+        protect_ner: If True, never remove named entities (PERSON, ORG, GPE, DATE,
+            MONEY, PERCENT, TIME, QUANTITY, CARDINAL, ORDINAL).
 
     Returns:
         Compressed text
     """
     roberta_model, roberta_tokenizer, device, nlp = get_models()
+
+    # Protected NER labels - these carry important factual information
+    PROTECTED_NER = {'PERSON', 'ORG', 'GPE', 'DATE', 'MONEY', 'PERCENT',
+                     'TIME', 'QUANTITY', 'CARDINAL', 'ORDINAL', 'LOC', 'FAC'}
 
     # Split into sentences for better MLM context
     doc = nlp(text)
@@ -121,6 +129,9 @@ def compress_text(text, prob_threshold=1e-5):
 
     # Track which words to remove based on probability threshold
     words_to_remove = set()
+
+    # Track protected word positions (from NER)
+    protected_positions = set()
 
     for sent_idx, sentence in enumerate(sentences):
         # Parse sentence
@@ -130,12 +141,51 @@ def compress_text(text, prob_threshold=1e-5):
         if len(words) == 0:
             continue
 
+        # If NER protection enabled, find protected positions
+        if protect_ner:
+            # Map character positions to word indices
+            word_tokens = [token for token in sent_doc if not token.is_punct and not token.is_space]
+            for ent in sent_doc.ents:
+                if ent.label_ in PROTECTED_NER:
+                    # Find which word indices overlap with this entity
+                    for word_idx, token in enumerate(word_tokens):
+                        if token.idx >= ent.start_char and token.idx < ent.end_char:
+                            protected_positions.add((sent_idx, word_idx))
+                        elif token.idx + len(token.text) > ent.start_char and token.idx < ent.end_char:
+                            protected_positions.add((sent_idx, word_idx))
+
         # Get MLM probabilities for each word in this sentence
+        word_probs = []
         for word_idx, word in enumerate(words):
             prob = get_mlm_probability(roberta_model, roberta_tokenizer, device, sentence, word_idx)
-            # Remove words that exceed the probability threshold
-            if prob >= prob_threshold:
-                words_to_remove.add((sent_idx, word_idx))
+            word_probs.append((sent_idx, word_idx, prob))
+
+        if no_adjacent_removal:
+            # Sort by probability (highest first) and greedily select non-adjacent removals
+            candidates = [(s, w, p) for s, w, p in word_probs if p >= prob_threshold]
+            candidates.sort(key=lambda x: x[2], reverse=True)
+
+            removed_indices = set()
+            for sent_i, word_i, prob in candidates:
+                # Skip if this is a protected NER position
+                if protect_ner and (sent_i, word_i) in protected_positions:
+                    continue
+
+                # Check if adjacent word was already removed
+                prev_removed = (sent_i, word_i - 1) in removed_indices
+                next_removed = (sent_i, word_i + 1) in removed_indices
+
+                if not prev_removed and not next_removed:
+                    removed_indices.add((sent_i, word_i))
+                    words_to_remove.add((sent_i, word_i))
+        else:
+            # Original behavior: remove all words exceeding threshold
+            for sent_i, word_i, prob in word_probs:
+                if prob >= prob_threshold:
+                    # Skip if this is a protected NER position
+                    if protect_ner and (sent_i, word_i) in protected_positions:
+                        continue
+                    words_to_remove.add((sent_i, word_i))
 
     # Reconstruct sentences without removed words
     compressed_sentences = []
@@ -222,6 +272,10 @@ Probability thresholds (lower = more aggressive):
     parser.add_argument('-o', '--output', help='output file path')
     parser.add_argument('-p', '--prob-threshold', type=float, default=1e-5,
                        help='probability threshold: remove words with P >= this value (default: 1e-5)')
+    parser.add_argument('--no-adjacent', action='store_true',
+                       help='never remove two adjacent words; if both exceed threshold, remove only the highest probability one')
+    parser.add_argument('--no-protect-ner', action='store_true',
+                       help='disable NER protection (by default, named entities like PERSON, ORG, GPE, DATE are preserved)')
 
     args = parser.parse_args()
 
@@ -244,6 +298,10 @@ Probability thresholds (lower = more aggressive):
     print(f"MODE: {args.mode.upper()} (MLM-BASED)")
     if args.mode == 'compress':
         print(f"THRESHOLD: P >= {args.prob_threshold:.0e}")
+        if args.no_adjacent:
+            print("NO-ADJACENT: enabled (won't remove consecutive words)")
+        if not args.no_protect_ner:
+            print("NER PROTECTION: enabled (named entities preserved)")
     print("=" * 60)
     print()
 
@@ -254,7 +312,9 @@ Probability thresholds (lower = more aggressive):
         print("Compressing...")
         print()
 
-        output_text = compress_text(input_text, prob_threshold=args.prob_threshold)
+        output_text = compress_text(input_text, prob_threshold=args.prob_threshold,
+                                    no_adjacent_removal=args.no_adjacent,
+                                    protect_ner=not args.no_protect_ner)
 
         print("CAVEMAN COMPRESSED:")
         print(output_text)
