@@ -8,22 +8,28 @@ import os
 import sys
 import argparse
 from pathlib import Path
-from openai import OpenAI
+from openai import OpenAI, APIStatusError, APIConnectionError, APITimeoutError, AuthenticationError
 import spacy
 import numpy as np
 
-from .utils import load_api_key
+from utils import load_api_key
 
 # Load prompts from files
 PROMPTS_DIR = Path(__file__).parent / 'prompts'
+MAX_TEXT_LENGTH = 100000 # Maximum characters for input text
 
 def load_prompt(filename):
     """Load prompt from prompts directory"""
     prompt_path = PROMPTS_DIR / filename
     if not prompt_path.exists():
         print(f"Error: Prompt file not found: {prompt_path}", file=sys.stderr)
+        print(f"Please ensure '{filename}' exists in the '{PROMPTS_DIR}' directory.", file=sys.stderr)
         sys.exit(1)
-    return prompt_path.read_text()
+    try:
+        return prompt_path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        print(f"Error: Could not read prompt file '{prompt_path}' due to invalid UTF-8 encoding.", file=sys.stderr)
+        sys.exit(1)
 
 COMPRESSION_PROMPT = load_prompt('compression.txt')
 DECOMPRESSION_PROMPT = load_prompt('decompression.txt')
@@ -63,13 +69,14 @@ def is_text_content(text):
         'def ', 'class ', 'function ', 'import ', 'const ', 'let ', 'var ',
         'public ', 'private ', 'protected ', '#include', 'package ',
         '=>', '->', '::', '!=', '==', '<=', '>=', '&&', '||',
+        'print(', 'console.log(', 'return ', 'if (', 'for (', 'while (',
     ]
 
     # Count code-like patterns
     code_score = sum(1 for indicator in code_indicators if indicator in text)
 
     # Check for balanced braces/brackets (common in code)
-    brace_count = text.count('{') + text.count('}') + text.count('[') + text.count(']')
+    brace_count = text.count('{') + text.count('}') + text.count('[') + text.count(']') + text.count('(') + text.count(')')
 
     # Check for natural language indicators
     words = text.split()
@@ -136,13 +143,47 @@ def compress_text(text, model="gpt-4o", calculate_embeddings=True):
     # Detect if this is natural language text
     is_text = is_text_content(text)
 
-    # If it's text, use sentence-by-sentence compression with gpt-4o-mini
-    if is_text:
-        sentences = split_sentences(text)
+    compressed = ""
+    try:
+        # If it's text, use sentence-by-sentence compression with gpt-4o-mini
+        if is_text:
+            sentences = split_sentences(text)
 
-        # If only one sentence or very short, compress as whole
-        if len(sentences) <= 1:
-            model = "gpt-4o-mini"
+            # If only one sentence or very short, compress as whole
+            if len(sentences) <= 1:
+                model = "gpt-4o-mini"
+                prompt = COMPRESSION_PROMPT.format(text=text)
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                )
+                compressed = response.choices[0].message.content.strip()
+            else:
+                # Compress sentence by sentence with gpt-4o-mini
+                compressed_sentences = []
+                for sentence in sentences:
+                    if not sentence.strip():
+                        continue
+
+                    prompt = COMPRESSION_PROMPT.format(text=sentence)
+                    response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.3,
+                    )
+                    compressed_sent = response.choices[0].message.content.strip()
+                    compressed_sentences.append(compressed_sent)
+
+                compressed = ' '.join(compressed_sentences)
+        else:
+            # For code/structured data, use original model and compress as whole
             prompt = COMPRESSION_PROMPT.format(text=text)
             response = client.chat.completions.create(
                 model=model,
@@ -153,38 +194,27 @@ def compress_text(text, model="gpt-4o", calculate_embeddings=True):
                 temperature=0.3,
             )
             compressed = response.choices[0].message.content.strip()
+
+    except AuthenticationError:
+        print("Error: OpenAI authentication failed. Please check your API key.", file=sys.stderr)
+        sys.exit(1)
+    except APIStatusError as e:
+        if e.status_code == 429:
+            print("Error: OpenAI rate limit exceeded. Please wait and try again later.", file=sys.stderr)
+        elif e.status_code >= 500:
+            print(f"Error: OpenAI server error ({e.status_code}). Service may be temporarily unavailable.", file=sys.stderr)
         else:
-            # Compress sentence by sentence with gpt-4o-mini
-            compressed_sentences = []
-            for sentence in sentences:
-                if not sentence.strip():
-                    continue
-
-                prompt = COMPRESSION_PROMPT.format(text=sentence)
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.3,
-                )
-                compressed_sent = response.choices[0].message.content.strip()
-                compressed_sentences.append(compressed_sent)
-
-            compressed = ' '.join(compressed_sentences)
-    else:
-        # For code/structured data, use original model and compress as whole
-        prompt = COMPRESSION_PROMPT.format(text=text)
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "You are an expert at caveman compression. Always compress the provided text, never ask for clarification."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-        )
-        compressed = response.choices[0].message.content.strip()
+            print(f"Error: OpenAI API returned an unexpected status code {e.status_code}: {e.response}", file=sys.stderr)
+        sys.exit(1)
+    except APITimeoutError:
+        print("Error: OpenAI API request timed out. Please check your internet connection or try again later.", file=sys.stderr)
+        sys.exit(1)
+    except APIConnectionError:
+        print("Error: Could not connect to OpenAI API. Please check your internet connection.", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred during compression: {e}", file=sys.stderr)
+        sys.exit(1)
 
     # Calculate statistics
     original_tokens = count_tokens(text)
@@ -206,18 +236,41 @@ def decompress_text(text, model="gpt-4o"):
     """Decompress caveman compression to normal English"""
     client = OpenAI(api_key=load_api_key())
 
-    prompt = DECOMPRESSION_PROMPT.format(text=text)
+    decompressed = ""
+    try:
+        prompt = DECOMPRESSION_PROMPT.format(text=text)
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are an expert at expanding compressed text."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3,
-    )
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are an expert at expanding compressed text."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+        )
 
-    decompressed = response.choices[0].message.content.strip()
+        decompressed = response.choices[0].message.content.strip()
+
+    except AuthenticationError:
+        print("Error: OpenAI authentication failed. Please check your API key.", file=sys.stderr)
+        sys.exit(1)
+    except APIStatusError as e:
+        if e.status_code == 429:
+            print("Error: OpenAI rate limit exceeded. Please wait and try again later.", file=sys.stderr)
+        elif e.status_code >= 500:
+            print(f"Error: OpenAI server error ({e.status_code}). Service may be temporarily unavailable.", file=sys.stderr)
+        else:
+            print(f"Error: OpenAI API returned an unexpected status code {e.status_code}: {e.response}", file=sys.stderr)
+        sys.exit(1)
+    except APITimeoutError:
+        print("Error: OpenAI API request timed out. Please check your internet connection or try again later.", file=sys.stderr)
+        sys.exit(1)
+    except APIConnectionError:
+        print("Error: Could not connect to OpenAI API. Please check your internet connection.", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred during decompression: {e}", file=sys.stderr)
+        sys.exit(1)
 
     # Calculate statistics
     caveman_tokens = count_tokens(text)
@@ -277,17 +330,27 @@ Examples:
     mode = 'compress' if args.mode in ['compress', 'c'] else 'decompress'
 
     # Get input text
+    input_text = ""
     if args.file:
-        with open(args.file, 'r') as f:
-            input_text = f.read().strip()
+        input_path = Path(args.file)
+        if not input_path.exists():
+            print(f"Error: Input file not found: {args.file}", file=sys.stderr)
+            sys.exit(1)
+        try:
+            input_text = input_path.read_text(encoding='utf-8').strip()
+        except PermissionError:
+            print(f"Error: Permission denied when reading file: {args.file}", file=sys.stderr)
+            sys.exit(1)
+        except UnicodeDecodeError:
+            print(f"Error: Input file '{args.file}' contains invalid UTF-8 encoding.", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error: An unexpected error occurred while reading file '{args.file}': {e}", file=sys.stderr)
+            sys.exit(1)
     elif args.text:
         input_text = args.text
     else:
         parser.error("Must provide either text argument or -f/--file option")
-
-    if not input_text:
-        print("Error: Input text is empty", file=sys.stderr)
-        sys.exit(1)
 
     # Process text
     print(f"\n{'='*60}")
@@ -307,8 +370,8 @@ Examples:
 
         print(f"{'='*60}")
         print("STATISTICS:")
-        print(f"  Original:   {len(input_text):4d} chars ≈ {orig_tokens:3d} tokens")
-        print(f"  Compressed: {len(result):4d} chars ≈ {comp_tokens:3d} tokens")
+        print(f"  Original:   {len(input_text):4d} chars \u2248 {orig_tokens:3d} tokens")
+        print(f"  Compressed: {len(result):4d} chars \u2248 {comp_tokens:3d} tokens")
         print(f"  Reduction:  {reduction:.1f}%")
 
         if emb_loss is not None and emb_sim is not None:
@@ -337,16 +400,25 @@ Examples:
 
         print(f"{'='*60}")
         print("STATISTICS:")
-        print(f"  Caveman:  {len(input_text):4d} chars ≈ {cave_tokens:3d} tokens")
-        print(f"  Normal:   {len(result):4d} chars ≈ {norm_tokens:3d} tokens")
+        print(f"  Caveman:  {len(input_text):4d} chars \u2248 {cave_tokens:3d} tokens")
+        print(f"  Normal:   {len(result):4d} chars \u2248 {norm_tokens:3d} tokens")
         print(f"  Expansion: {expansion:.1f}%")
         print(f"{'='*60}\n")
 
     # Save to file if requested
     if args.output:
-        with open(args.output, 'w') as f:
-            f.write(result)
-        print(f"Output saved to: {args.output}\n")
+        output_path = Path(args.output)
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            output_path.write_text(result, encoding='utf-8')
+            print(f"Output saved to: {args.output}\n")
+        except PermissionError:
+            print(f"Error: Permission denied when writing to file: {args.output}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error: An unexpected error occurred while writing to file '{args.output}': {e}", file=sys.stderr)
+            sys.exit(1)
 
 
 if __name__ == "__main__":

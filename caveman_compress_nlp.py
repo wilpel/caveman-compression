@@ -9,14 +9,15 @@ import sys
 import argparse
 from pathlib import Path
 
+MAX_TEXT_LENGTH_NLP = 500000 # Maximum characters for input text in NLP mode
+
 try:
     import spacy
     from spacy.language import Language
 except ImportError:
-    print("Error: spaCy not installed. Install with:", file=sys.stderr)
-    print("  pip install spacy", file=sys.stderr)
-    print("  python -m spacy download en_core_web_sm", file=sys.stderr)
-    print("  python -m spacy download xx_ent_wiki_sm  # for other languages", file=sys.stderr)
+    print("Error: spaCy is not installed.", file=sys.stderr)
+    print("Please install it using: pip install spacy", file=sys.stderr)
+    print("Then download the necessary models, e.g.: python -m spacy download en_core_web_sm", file=sys.stderr)
     sys.exit(1)
 
 # Language model cache
@@ -51,13 +52,19 @@ def get_nlp_model(lang='en'):
     try:
         nlp = spacy.load(model_name)
     except OSError:
-        print(f"Warning: Model '{model_name}' not found. Using multilingual model.", file=sys.stderr)
+        print(f"Warning: spaCy model '{model_name}' not found for language '{lang}'. Attempting to load multilingual model 'xx_ent_wiki_sm'.", file=sys.stderr)
         try:
             nlp = spacy.load('xx_ent_wiki_sm')
         except OSError:
-            print("Error: No spaCy models found. Install with:", file=sys.stderr)
-            print(f"  python -m spacy download {model_names.get('en', 'en_core_web_sm')}", file=sys.stderr)
+            print("Error: No suitable spaCy models found.", file=sys.stderr)
+            print(f"Please download a model, e.g., for English: python -m spacy download {model_names.get('en', 'en_core_web_sm')}", file=sys.stderr)
             sys.exit(1)
+        except Exception as e:
+            print(f"Error: An unexpected error occurred while loading spaCy model: {e}", file=sys.stderr)
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error: An unexpected error occurred while loading spaCy model: {e}", file=sys.stderr)
+        sys.exit(1)
 
     _nlp_models[lang] = nlp
     return nlp
@@ -68,8 +75,20 @@ def count_tokens(text):
 
 def compress_text(text, lang='en'):
     """Apply NLP-based compression using spaCy"""
-    nlp = get_nlp_model(lang)
-    doc = nlp(text)
+    # Input Validation
+    if not text or not text.strip():
+        print("Error: Input text cannot be empty.", file=sys.stderr)
+        sys.exit(1)
+    if len(text) > MAX_TEXT_LENGTH_NLP:
+        print(f"Error: Input text too long ({len(text)} characters). Maximum allowed is {MAX_TEXT_LENGTH_NLP}.", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        nlp = get_nlp_model(lang)
+        doc = nlp(text)
+    except Exception as e:
+        print(f"Error: Failed to process text with spaCy model: {e}", file=sys.stderr)
+        sys.exit(1)
 
     compressed_sentences = []
 
@@ -93,7 +112,9 @@ def compress_text(text, lang='en'):
             if token.pos_ == 'DET':
                 continue
 
-            # Skip some adverbs (very, really, quite, etc.) but keep important ones
+            # Skip some adverbs (very, really, quite, extremely, incredibly, absolutely,
+            # totally, completely, utterly, highly, particularly,
+            # especially, truly, actually, basically, essentially
             if token.pos_ == 'ADV' and token.text.lower() in {
                 'very', 'really', 'quite', 'extremely', 'incredibly', 'absolutely',
                 'totally', 'completely', 'utterly', 'highly', 'particularly',
@@ -209,8 +230,8 @@ Supported languages: en, es, de, fr, it, pt, nl, el, nb, lt, ja, zh, pl, ro, ru
         orig_tokens = count_tokens(input_text)
         comp_tokens = count_tokens(output_text)
         reduction = ((orig_tokens - comp_tokens) / orig_tokens * 100) if orig_tokens > 0 else 0
-        print(f"  Original:    {len(input_text)} chars ≈ {orig_tokens} tokens")
-        print(f"  Compressed:  {len(output_text)} chars ≈ {comp_tokens} tokens")
+        print(f"  Original:    {len(input_text)} chars \u2248 {orig_tokens} tokens")
+        print(f"  Compressed:  {len(output_text)} chars \u2248 {comp_tokens} tokens")
         print(f"  Reduction:  {reduction:.1f}%")
         print("=" * 60)
 

@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "caveman-compression"
+version = "1.0.0"
+description = "A Python tool for text compression using both NLP techniques and large language models."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "your@email.com" }
+]
+keywords = ["nlp", "llm", "text-compression", "openai"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+
+
+dependencies = [
+    "openai",
+    "numpy",
+]
+
+[project.optional-dependencies]
+nlp = [
+    "spacy",
+]
+benchmark = [
+    "scikit-learn",
+    "pandas",
+]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "ruff",
+    "mypy",
+]
+all = [
+    "caveman-compression[nlp,benchmark,dev]",
+]
+
+[project.scripts]
+caveman = "caveman_compress:main"
+caveman-nlp = "caveman_compress_nlp:main"
+
+[tool.setuptools]
+py-modules = ["caveman_compress", "caveman_compress_nlp"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+testpaths = [
+    "tests",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.ruff]
+line-length = 88
+select = ["E", "W", "F", "I", "C", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
