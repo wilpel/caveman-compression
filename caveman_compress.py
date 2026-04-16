@@ -12,7 +12,10 @@ from openai import OpenAI
 import spacy
 import numpy as np
 
-from .utils import load_api_key
+try:
+    from .utils import load_api_key
+except ImportError:
+    from utils import load_api_key
 
 # Load prompts from files
 PROMPTS_DIR = Path(__file__).parent / 'prompts'

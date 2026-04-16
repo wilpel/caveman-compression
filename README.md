@@ -63,6 +63,7 @@ Decompressed: "at a medium-large company based in Stockholm"
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 
 # Set up API key
 cp .env.example .env
@@ -98,7 +99,7 @@ python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
 ```bash
 python caveman_compress_mlm.py compress "Your verbose text here"
 python caveman_compress_mlm.py compress -f input.txt -o output.txt
-python caveman_compress_mlm.py compress -f input.txt -k 30  # adjust compression level
+python caveman_compress_mlm.py compress -f input.txt -p 1e-4  # adjust compression level
 ```
 
 **LLM-based compression (40-58% reduction, requires API key):**
