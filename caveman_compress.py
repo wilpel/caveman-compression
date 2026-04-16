@@ -7,6 +7,7 @@ Converts normal English to caveman compression and vice versa using OpenAI API
 import os
 import sys
 import argparse
+import importlib.util
 from pathlib import Path
 from openai import OpenAI
 import spacy
@@ -52,6 +53,56 @@ def get_nlp_model(lang='en'):
 
     _nlp_models[lang] = nlp
     return nlp
+
+
+def run_checks():
+    """Validate local prerequisites for the LLM-based workflow."""
+    print(f"\n{'='*60}")
+    print("MODE: CHECK")
+    print(f"{'='*60}\n")
+
+    checks = []
+
+    project_root = Path(__file__).parent
+    env_path = project_root / '.env'
+    api_key_present = bool(os.environ.get('OPENAI_API_KEY'))
+    if not api_key_present and env_path.exists():
+        api_key_present = any(
+            line.strip().startswith('OPENAI_API_KEY=') and line.split('=', 1)[1].strip().strip('"')
+            for line in env_path.read_text().splitlines()
+        )
+    checks.append((
+        "OPENAI_API_KEY",
+        api_key_present,
+        "Found in environment or .env" if api_key_present else "Missing from environment and .env"
+    ))
+
+    spacy_model_present = importlib.util.find_spec('en_core_web_sm') is not None
+    checks.append((
+        "spaCy model",
+        spacy_model_present,
+        "en_core_web_sm is installed" if spacy_model_present else "Install with: python -m spacy download en_core_web_sm"
+    ))
+
+    prompt_files = ["compression.txt", "decompression.txt"]
+    for prompt_name in prompt_files:
+        prompt_path = PROMPTS_DIR / prompt_name
+        checks.append((f"prompt:{prompt_name}", prompt_path.exists(), str(prompt_path)))
+
+    failed = False
+    for name, ok, detail in checks:
+        status = "OK" if ok else "FAIL"
+        print(f"{status:4}  {name:20} {detail}")
+        if not ok:
+            failed = True
+
+    print()
+    if failed:
+        print("One or more checks failed.", file=sys.stderr)
+        return 1
+
+    print("All local checks passed.")
+    return 0
 
 
 def count_tokens(text):
@@ -232,7 +283,7 @@ def decompress_text(text, model="gpt-4o"):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Caveman Compression Tool - Compress or decompress text',
+        description='Caveman Compression Tool - Compress, decompress, or validate setup',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -241,6 +292,9 @@ Examples:
 
   # Decompress caveman to normal English
   python caveman_compress.py decompress "Need fast queries. Add index..."
+
+  # Validate local setup
+  python caveman_compress.py check
 
   # Read from file
   python caveman_compress.py compress -f input.txt
@@ -252,8 +306,8 @@ Examples:
 
     parser.add_argument(
         'mode',
-        choices=['compress', 'decompress', 'c', 'd'],
-        help='Mode: compress (c) or decompress (d)'
+        choices=['compress', 'decompress', 'check', 'c', 'd'],
+        help='Mode: compress (c), decompress (d), or check local setup'
     )
     parser.add_argument(
         'text',
@@ -277,7 +331,15 @@ Examples:
     args = parser.parse_args()
 
     # Normalize mode
-    mode = 'compress' if args.mode in ['compress', 'c'] else 'decompress'
+    if args.mode in ['compress', 'c']:
+        mode = 'compress'
+    elif args.mode in ['decompress', 'd']:
+        mode = 'decompress'
+    else:
+        mode = 'check'
+
+    if mode == 'check':
+        sys.exit(run_checks())
 
     # Get input text
     if args.file:
