@@ -290,6 +290,9 @@ Examples:
   # Compress normal English to caveman
   python caveman_compress.py compress "In order to optimize the database..."
 
+  # Compress and print only the result
+  python caveman_compress.py compress -q "In order to optimize the database..."
+
   # Decompress caveman to normal English
   python caveman_compress.py decompress "Need fast queries. Add index..."
 
@@ -327,6 +330,11 @@ Examples:
         default='gpt-4o',
         help='OpenAI model to use (default: gpt-4o)'
     )
+    parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Print only the final result text'
+    )
 
     args = parser.parse_args()
 
@@ -354,64 +362,67 @@ Examples:
         print("Error: Input text is empty", file=sys.stderr)
         sys.exit(1)
 
-    # Process text
-    print(f"\n{'='*60}")
-    print(f"MODE: {mode.upper()}")
-    print(f"MODEL: {args.model}")
-    print(f"{'='*60}\n")
-
     if mode == 'compress':
-        print("ORIGINAL TEXT:")
-        print(f"{input_text}\n")
-
-        print("Compressing...\n")
         result, orig_tokens, comp_tokens, reduction, emb_loss, emb_sim = compress_text(input_text, args.model)
+        if args.quiet:
+            print(result)
+        else:
+            print(f"\n{'='*60}")
+            print(f"MODE: {mode.upper()}")
+            print(f"MODEL: {args.model}")
+            print(f"{'='*60}\n")
+            print("ORIGINAL TEXT:")
+            print(f"{input_text}\n")
+            print("Compressing...\n")
+            print("CAVEMAN COMPRESSED:")
+            print(f"{result}\n")
+            print(f"{'='*60}")
+            print("STATISTICS:")
+            print(f"  Original:   {len(input_text):4d} chars ≈ {orig_tokens:3d} tokens")
+            print(f"  Compressed: {len(result):4d} chars ≈ {comp_tokens:3d} tokens")
+            print(f"  Reduction:  {reduction:.1f}%")
 
-        print("CAVEMAN COMPRESSED:")
-        print(f"{result}\n")
+            if emb_loss is not None and emb_sim is not None:
+                print(f"\n  Embedding Similarity: {emb_sim:.4f}")
+                print(f"  Embedding Loss:       {emb_loss:.4f}")
+                if emb_sim >= 0.95:
+                    print(f"  Quality: Excellent - virtually identical semantic meaning")
+                elif emb_sim >= 0.90:
+                    print(f"  Quality: Good - minor semantic drift")
+                elif emb_sim >= 0.85:
+                    print(f"  Quality: Moderate - noticeable drift")
+                else:
+                    print(f"  Quality: Poor - significant semantic drift")
 
-        print(f"{'='*60}")
-        print("STATISTICS:")
-        print(f"  Original:   {len(input_text):4d} chars ≈ {orig_tokens:3d} tokens")
-        print(f"  Compressed: {len(result):4d} chars ≈ {comp_tokens:3d} tokens")
-        print(f"  Reduction:  {reduction:.1f}%")
-
-        if emb_loss is not None and emb_sim is not None:
-            print(f"\n  Embedding Similarity: {emb_sim:.4f}")
-            print(f"  Embedding Loss:       {emb_loss:.4f}")
-            if emb_sim >= 0.95:
-                print(f"  Quality: Excellent - virtually identical semantic meaning")
-            elif emb_sim >= 0.90:
-                print(f"  Quality: Good - minor semantic drift")
-            elif emb_sim >= 0.85:
-                print(f"  Quality: Moderate - noticeable drift")
-            else:
-                print(f"  Quality: Poor - significant semantic drift")
-
-        print(f"{'='*60}\n")
+            print(f"{'='*60}\n")
 
     else:  # decompress
-        print("CAVEMAN TEXT:")
-        print(f"{input_text}\n")
-
-        print("Decompressing...\n")
         result, cave_tokens, norm_tokens, expansion = decompress_text(input_text, args.model)
-
-        print("NORMAL ENGLISH:")
-        print(f"{result}\n")
-
-        print(f"{'='*60}")
-        print("STATISTICS:")
-        print(f"  Caveman:  {len(input_text):4d} chars ≈ {cave_tokens:3d} tokens")
-        print(f"  Normal:   {len(result):4d} chars ≈ {norm_tokens:3d} tokens")
-        print(f"  Expansion: {expansion:.1f}%")
-        print(f"{'='*60}\n")
+        if args.quiet:
+            print(result)
+        else:
+            print(f"\n{'='*60}")
+            print(f"MODE: {mode.upper()}")
+            print(f"MODEL: {args.model}")
+            print(f"{'='*60}\n")
+            print("CAVEMAN TEXT:")
+            print(f"{input_text}\n")
+            print("Decompressing...\n")
+            print("NORMAL ENGLISH:")
+            print(f"{result}\n")
+            print(f"{'='*60}")
+            print("STATISTICS:")
+            print(f"  Caveman:  {len(input_text):4d} chars ≈ {cave_tokens:3d} tokens")
+            print(f"  Normal:   {len(result):4d} chars ≈ {norm_tokens:3d} tokens")
+            print(f"  Expansion: {expansion:.1f}%")
+            print(f"{'='*60}\n")
 
     # Save to file if requested
     if args.output:
         with open(args.output, 'w') as f:
             f.write(result)
-        print(f"Output saved to: {args.output}\n")
+        if not args.quiet:
+            print(f"Output saved to: {args.output}\n")
 
 
 if __name__ == "__main__":

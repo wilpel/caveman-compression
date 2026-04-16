@@ -106,12 +106,13 @@ python caveman_compress_mlm.py compress -f input.txt -p 1e-4  # adjust compressi
 ```bash
 python caveman_compress.py check
 python caveman_compress.py compress "Your verbose text here"
+python caveman_compress.py compress -q "Your verbose text here"
 python caveman_compress.py compress -f input.txt -o output.txt
 ```
 
 **Shell alias for the OpenAI workflow:**
 ```bash
-alias caveman='python /absolute/path/to/caveman-compression/caveman_compress.py compress'
+alias caveman='python /absolute/path/to/caveman-compression/caveman_compress.py compress -q'
 
 caveman "Your verbose text here"
 ```
