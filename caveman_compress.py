@@ -9,14 +9,13 @@ import sys
 import argparse
 import importlib.util
 from pathlib import Path
-from openai import OpenAI
 import spacy
 import numpy as np
 
 try:
-    from .utils import load_api_key
+    from .utils import get_openai_client, load_api_key, load_base_url
 except ImportError:
-    from utils import load_api_key
+    from utils import get_openai_client, load_api_key, load_base_url
 
 # Load prompts from files
 PROMPTS_DIR = Path(__file__).parent / 'prompts'
@@ -77,6 +76,13 @@ def run_checks():
         "Found in environment or .env" if api_key_present else "Missing from environment and .env"
     ))
 
+    base_url = load_base_url()
+    checks.append((
+        "OPENAI_BASE_URL",
+        True,
+        base_url if base_url else "Not set; using the default OpenAI endpoint"
+    ))
+
     spacy_model_present = importlib.util.find_spec('en_core_web_sm') is not None
     checks.append((
         "spaCy model",
@@ -103,7 +109,6 @@ def run_checks():
 
     print("All local checks passed.")
     return 0
-
 
 def count_tokens(text):
     """Estimate tokens using character count / 4"""
@@ -185,7 +190,7 @@ def calculate_embedding_loss(client, original_text, compressed_text, model="text
 
 def compress_text(text, model="gpt-4o", calculate_embeddings=True):
     """Compress normal English to caveman compression"""
-    client = OpenAI(api_key=load_api_key())
+    client = get_openai_client()
 
     # Detect if this is natural language text
     is_text = is_text_content(text)
@@ -258,7 +263,7 @@ def compress_text(text, model="gpt-4o", calculate_embeddings=True):
 
 def decompress_text(text, model="gpt-4o"):
     """Decompress caveman compression to normal English"""
-    client = OpenAI(api_key=load_api_key())
+    client = get_openai_client()
 
     prompt = DECOMPRESSION_PROMPT.format(text=text)
 

@@ -70,6 +70,13 @@ cp .env.example .env
 # Edit .env and add your OpenAI API key
 ```
 
+**OpenAI-compatible endpoints (optional):**
+```bash
+# Example .env additions for llama.cpp / vLLM / Ollama-compatible servers
+OPENAI_API_KEY=your_api_key_here
+OPENAI_BASE_URL=http://localhost:8000/v1
+```
+
 **NLP-based (free, offline, multilingual):**
 ```bash
 python3 -m venv venv
@@ -108,6 +115,7 @@ python caveman_compress.py check
 python caveman_compress.py compress "Your verbose text here"
 python caveman_compress.py compress -q "Your verbose text here"
 python caveman_compress.py compress -f input.txt -o output.txt
+python caveman_compress.py compress -m your-local-model "Your verbose text here"
 ```
 
 **Shell alias for the OpenAI workflow:**

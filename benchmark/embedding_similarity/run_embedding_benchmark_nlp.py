@@ -25,7 +25,7 @@ except ImportError:
 import os
 import subprocess
 
-from utils import load_api_key
+from utils import get_openai_client
 
 
 def compress_text(text, lang='en'):
@@ -83,8 +83,7 @@ def cosine_similarity(vec1, vec2):
 def run_benchmark(test_texts, lang='en', embedding_model="text-embedding-3-large", output_path=None, verbose=True):
     """Run embedding similarity benchmark"""
 
-    api_key = load_api_key()
-    client = OpenAI(api_key=api_key)
+    client = get_openai_client()
 
     if verbose:
         print("=" * 70)
