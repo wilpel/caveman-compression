@@ -63,10 +63,18 @@ Decompressed: "at a medium-large company based in Stockholm"
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 
 # Set up API key
 cp .env.example .env
 # Edit .env and add your OpenAI API key
+```
+
+**OpenAI-compatible endpoints (optional):**
+```bash
+# Example .env additions for llama.cpp / vLLM / Ollama-compatible servers
+OPENAI_API_KEY=your_api_key_here
+OPENAI_BASE_URL=http://localhost:8000/v1
 ```
 
 **NLP-based (free, offline, multilingual):**
@@ -98,13 +106,23 @@ python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
 ```bash
 python caveman_compress_mlm.py compress "Your verbose text here"
 python caveman_compress_mlm.py compress -f input.txt -o output.txt
-python caveman_compress_mlm.py compress -f input.txt -k 30  # adjust compression level
+python caveman_compress_mlm.py compress -f input.txt -p 1e-4  # adjust compression level
 ```
 
 **LLM-based compression (40-58% reduction, requires API key):**
 ```bash
+python caveman_compress.py check
 python caveman_compress.py compress "Your verbose text here"
+python caveman_compress.py compress -q "Your verbose text here"
 python caveman_compress.py compress -f input.txt -o output.txt
+python caveman_compress.py compress -m your-local-model "Your verbose text here"
+```
+
+**Shell alias for the OpenAI workflow:**
+```bash
+alias caveman='python /absolute/path/to/caveman-compression/caveman_compress.py compress -q'
+
+caveman "Your verbose text here"
 ```
 
 **Decompress:**

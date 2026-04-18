@@ -29,7 +29,7 @@ except ImportError:
 
 import os
 
-from utils import load_api_key
+from utils import get_openai_client
 
 
 def compress_text(text, model="gpt-4o"):
@@ -197,8 +197,7 @@ def run_benchmark(test_data_path, output_path=None, model="gpt-4o", verbose=True
     """
 
     # Load API key and initialize client
-    api_key = load_api_key()
-    client = OpenAI(api_key=api_key)
+    client = get_openai_client()
 
     # Load test data
     with open(test_data_path, 'r') as f:

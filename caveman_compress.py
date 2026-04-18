@@ -7,12 +7,15 @@ Converts normal English to caveman compression and vice versa using OpenAI API
 import os
 import sys
 import argparse
+import importlib.util
 from pathlib import Path
-from openai import OpenAI
 import spacy
 import numpy as np
 
-from .utils import load_api_key
+try:
+    from .utils import get_openai_client, load_api_key, load_base_url
+except ImportError:
+    from utils import get_openai_client, load_api_key, load_base_url
 
 # Load prompts from files
 PROMPTS_DIR = Path(__file__).parent / 'prompts'
@@ -50,6 +53,62 @@ def get_nlp_model(lang='en'):
     _nlp_models[lang] = nlp
     return nlp
 
+
+def run_checks():
+    """Validate local prerequisites for the LLM-based workflow."""
+    print(f"\n{'='*60}")
+    print("MODE: CHECK")
+    print(f"{'='*60}\n")
+
+    checks = []
+
+    project_root = Path(__file__).parent
+    env_path = project_root / '.env'
+    api_key_present = bool(os.environ.get('OPENAI_API_KEY'))
+    if not api_key_present and env_path.exists():
+        api_key_present = any(
+            line.strip().startswith('OPENAI_API_KEY=') and line.split('=', 1)[1].strip().strip('"')
+            for line in env_path.read_text().splitlines()
+        )
+    checks.append((
+        "OPENAI_API_KEY",
+        api_key_present,
+        "Found in environment or .env" if api_key_present else "Missing from environment and .env"
+    ))
+
+    base_url = load_base_url()
+    checks.append((
+        "OPENAI_BASE_URL",
+        True,
+        base_url if base_url else "Not set; using the default OpenAI endpoint"
+    ))
+
+    spacy_model_present = importlib.util.find_spec('en_core_web_sm') is not None
+    checks.append((
+        "spaCy model",
+        spacy_model_present,
+        "en_core_web_sm is installed" if spacy_model_present else "Install with: python -m spacy download en_core_web_sm"
+    ))
+
+    prompt_files = ["compression.txt", "decompression.txt"]
+    for prompt_name in prompt_files:
+        prompt_path = PROMPTS_DIR / prompt_name
+        checks.append((f"prompt:{prompt_name}", prompt_path.exists(), str(prompt_path)))
+
+    failed = False
+    for name, ok, detail in checks:
+        status = "OK" if ok else "FAIL"
+        print(f"{status:4}  {name:20} {detail}")
+        if not ok:
+            failed = True
+
+    print()
+    if failed:
+        print("One or more checks failed.", file=sys.stderr)
+        return 1
+
+    print("All local checks passed.")
+    return 0
 
 def count_tokens(text):
     """Estimate tokens using character count / 4"""
@@ -131,7 +190,7 @@ def calculate_embedding_loss(client, original_text, compressed_text, model="text
 
 def compress_text(text, model="gpt-4o", calculate_embeddings=True):
     """Compress normal English to caveman compression"""
-    client = OpenAI(api_key=load_api_key())
+    client = get_openai_client()
 
     # Detect if this is natural language text
     is_text = is_text_content(text)
@@ -204,7 +263,7 @@ def compress_text(text, model="gpt-4o", calculate_embeddings=True):
 
 def decompress_text(text, model="gpt-4o"):
     """Decompress caveman compression to normal English"""
-    client = OpenAI(api_key=load_api_key())
+    client = get_openai_client()
 
     prompt = DECOMPRESSION_PROMPT.format(text=text)
 
@@ -229,15 +288,21 @@ def decompress_text(text, model="gpt-4o"):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Caveman Compression Tool - Compress or decompress text',
+        description='Caveman Compression Tool - Compress, decompress, or validate setup',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Compress normal English to caveman
   python caveman_compress.py compress "In order to optimize the database..."
 
+  # Compress and print only the result
+  python caveman_compress.py compress -q "In order to optimize the database..."
+
   # Decompress caveman to normal English
   python caveman_compress.py decompress "Need fast queries. Add index..."
+
+  # Validate local setup
+  python caveman_compress.py check
 
   # Read from file
   python caveman_compress.py compress -f input.txt
@@ -249,8 +314,8 @@ Examples:
 
     parser.add_argument(
         'mode',
-        choices=['compress', 'decompress', 'c', 'd'],
-        help='Mode: compress (c) or decompress (d)'
+        choices=['compress', 'decompress', 'check', 'c', 'd'],
+        help='Mode: compress (c), decompress (d), or check local setup'
     )
     parser.add_argument(
         'text',
@@ -270,11 +335,24 @@ Examples:
         default='gpt-4o',
         help='OpenAI model to use (default: gpt-4o)'
     )
+    parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Print only the final result text'
+    )
 
     args = parser.parse_args()
 
     # Normalize mode
-    mode = 'compress' if args.mode in ['compress', 'c'] else 'decompress'
+    if args.mode in ['compress', 'c']:
+        mode = 'compress'
+    elif args.mode in ['decompress', 'd']:
+        mode = 'decompress'
+    else:
+        mode = 'check'
+
+    if mode == 'check':
+        sys.exit(run_checks())
 
     # Get input text
     if args.file:
@@ -289,64 +367,67 @@ Examples:
         print("Error: Input text is empty", file=sys.stderr)
         sys.exit(1)
 
-    # Process text
-    print(f"\n{'='*60}")
-    print(f"MODE: {mode.upper()}")
-    print(f"MODEL: {args.model}")
-    print(f"{'='*60}\n")
-
     if mode == 'compress':
-        print("ORIGINAL TEXT:")
-        print(f"{input_text}\n")
-
-        print("Compressing...\n")
         result, orig_tokens, comp_tokens, reduction, emb_loss, emb_sim = compress_text(input_text, args.model)
+        if args.quiet:
+            print(result)
+        else:
+            print(f"\n{'='*60}")
+            print(f"MODE: {mode.upper()}")
+            print(f"MODEL: {args.model}")
+            print(f"{'='*60}\n")
+            print("ORIGINAL TEXT:")
+            print(f"{input_text}\n")
+            print("Compressing...\n")
+            print("CAVEMAN COMPRESSED:")
+            print(f"{result}\n")
+            print(f"{'='*60}")
+            print("STATISTICS:")
+            print(f"  Original:   {len(input_text):4d} chars ≈ {orig_tokens:3d} tokens")
+            print(f"  Compressed: {len(result):4d} chars ≈ {comp_tokens:3d} tokens")
+            print(f"  Reduction:  {reduction:.1f}%")
 
-        print("CAVEMAN COMPRESSED:")
-        print(f"{result}\n")
+            if emb_loss is not None and emb_sim is not None:
+                print(f"\n  Embedding Similarity: {emb_sim:.4f}")
+                print(f"  Embedding Loss:       {emb_loss:.4f}")
+                if emb_sim >= 0.95:
+                    print(f"  Quality: Excellent - virtually identical semantic meaning")
+                elif emb_sim >= 0.90:
+                    print(f"  Quality: Good - minor semantic drift")
+                elif emb_sim >= 0.85:
+                    print(f"  Quality: Moderate - noticeable drift")
+                else:
+                    print(f"  Quality: Poor - significant semantic drift")
 
-        print(f"{'='*60}")
-        print("STATISTICS:")
-        print(f"  Original:   {len(input_text):4d} chars ≈ {orig_tokens:3d} tokens")
-        print(f"  Compressed: {len(result):4d} chars ≈ {comp_tokens:3d} tokens")
-        print(f"  Reduction:  {reduction:.1f}%")
-
-        if emb_loss is not None and emb_sim is not None:
-            print(f"\n  Embedding Similarity: {emb_sim:.4f}")
-            print(f"  Embedding Loss:       {emb_loss:.4f}")
-            if emb_sim >= 0.95:
-                print(f"  Quality: Excellent - virtually identical semantic meaning")
-            elif emb_sim >= 0.90:
-                print(f"  Quality: Good - minor semantic drift")
-            elif emb_sim >= 0.85:
-                print(f"  Quality: Moderate - noticeable drift")
-            else:
-                print(f"  Quality: Poor - significant semantic drift")
-
-        print(f"{'='*60}\n")
+            print(f"{'='*60}\n")
 
     else:  # decompress
-        print("CAVEMAN TEXT:")
-        print(f"{input_text}\n")
-
-        print("Decompressing...\n")
         result, cave_tokens, norm_tokens, expansion = decompress_text(input_text, args.model)
-
-        print("NORMAL ENGLISH:")
-        print(f"{result}\n")
-
-        print(f"{'='*60}")
-        print("STATISTICS:")
-        print(f"  Caveman:  {len(input_text):4d} chars ≈ {cave_tokens:3d} tokens")
-        print(f"  Normal:   {len(result):4d} chars ≈ {norm_tokens:3d} tokens")
-        print(f"  Expansion: {expansion:.1f}%")
-        print(f"{'='*60}\n")
+        if args.quiet:
+            print(result)
+        else:
+            print(f"\n{'='*60}")
+            print(f"MODE: {mode.upper()}")
+            print(f"MODEL: {args.model}")
+            print(f"{'='*60}\n")
+            print("CAVEMAN TEXT:")
+            print(f"{input_text}\n")
+            print("Decompressing...\n")
+            print("NORMAL ENGLISH:")
+            print(f"{result}\n")
+            print(f"{'='*60}")
+            print("STATISTICS:")
+            print(f"  Caveman:  {len(input_text):4d} chars ≈ {cave_tokens:3d} tokens")
+            print(f"  Normal:   {len(result):4d} chars ≈ {norm_tokens:3d} tokens")
+            print(f"  Expansion: {expansion:.1f}%")
+            print(f"{'='*60}\n")
 
     # Save to file if requested
     if args.output:
         with open(args.output, 'w') as f:
             f.write(result)
-        print(f"Output saved to: {args.output}\n")
+        if not args.quiet:
+            print(f"Output saved to: {args.output}\n")
 
 
 if __name__ == "__main__":
