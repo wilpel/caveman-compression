@@ -1,0 +1,11 @@
+{
+  "name": "caveman-compression",
+  "owner": { "name": "wilpel" },
+  "description": "Lossless semantic compression for LLM contexts",
+  "plugins": [
+    {
+      "name": "caveman-compression",
+      "source": "./"
+    }
+  ]
+}

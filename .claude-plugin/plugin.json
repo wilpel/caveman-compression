@@ -1,0 +1,9 @@
+{
+  "name": "caveman-compression",
+  "description": "Lossless semantic compression for LLM contexts. Strip predictable grammar, keep facts.",
+  "version": "0.1.0",
+  "author": { "name": "wilpel" },
+  "homepage": "https://github.com/wilpel/caveman-compression",
+  "repository": "https://github.com/wilpel/caveman-compression",
+  "license": "MIT"
+}

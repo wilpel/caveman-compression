@@ -7,9 +7,33 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-[Quick Start](#quick-start) • [Examples](#examples) • [Benchmarks](#benchmarks) • [Spec](SPEC.md)
+[Quick Start](#quick-start) • [Claude Code](#claude-code-plugin) • [Examples](#examples) • [Benchmarks](#benchmarks) • [Spec](SPEC.md)
 
 </div>
+
+---
+
+## Claude Code Plugin
+
+Install caveman-compression as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin in two commands:
+
+```
+/plugin marketplace add wilpel/caveman-compression
+/plugin install caveman-compression@caveman-compression
+```
+
+What you get:
+
+| Command | What |
+|---|---|
+| `/caveman-compress [--engine nlp\|mlm\|llm] [--file PATH \| TEXT]` | Compress text or a file. Auto-bootstraps the venv on first run. |
+| `/caveman-setup [nlp\|mlm\|llm]` | Manually bootstrap the venv for an engine. Idempotent. |
+
+Plus a `caveman-compress` skill that auto-suggests the slash command when you mention compressing prompts, system prompts, or RAG chunks.
+
+Default engine is `nlp` (free, offline, no API key). Switch to `mlm` for predictability-aware compression or `llm` for highest reduction (requires `OPENAI_API_KEY`).
+
+If auto-bootstrap fails, fall back to the manual installation steps in [Quick Start](#quick-start).
 
 ---
 
