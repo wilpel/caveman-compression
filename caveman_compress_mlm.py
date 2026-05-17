@@ -95,7 +95,28 @@ def get_mlm_probability(model, tokenizer, device, sentence, word_idx):
     except Exception:
         return 0.0
 
-def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_ner=True):
+# Negation tokens: removing these inverts sentence meaning, so they are
+# unconditionally preserved regardless of MLM probability.
+# Stored lowercased; matching is case-insensitive.
+NEGATION_TOKENS = {
+    'no', 'not', 'never', 'none', 'nobody', 'nothing', 'nowhere', 'neither', 'nor',
+    "n't", "don't", "doesn't", "didn't", "won't", "wouldn't", "shouldn't",
+    "couldn't", "can't", "cannot", "isn't", "aren't", "wasn't", "weren't",
+    "hasn't", "haven't", "hadn't", "mustn't", "shan't", "ain't",
+    'without',
+}
+
+def _is_all_caps_token(word):
+    """True if a word is an ALL-CAPS token worth preserving (>=2 letters, all upper).
+
+    Allows users to define their own semantic wrappers (e.g. "DANGER", "DONT")
+    that survive compression as a stable escape hatch.
+    """
+    letters = [c for c in word if c.isalpha()]
+    return len(letters) >= 2 and all(c.isupper() for c in letters)
+
+def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_ner=True,
+                  protect_negations=True, protect_all_caps=False):
     """
     Apply MLM-based compression by removing words whose predictability exceeds threshold.
 
@@ -113,6 +134,12 @@ def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_
             exceed threshold, only remove the one with higher probability.
         protect_ner: If True, never remove named entities (PERSON, ORG, GPE, DATE,
             MONEY, PERCENT, TIME, QUANTITY, CARDINAL, ORDINAL).
+        protect_negations: If True, never remove negation tokens (not, never,
+            don't, cannot, etc.). Removing these inverts meaning, so this
+            defaults to True for correctness.
+        protect_all_caps: If True, never remove ALL-CAPS tokens (>=2 letters).
+            Lets users wrap critical terms in caps as a stable escape hatch.
+            Off by default; opt in via --protect-all-caps.
 
     Returns:
         Compressed text
@@ -141,6 +168,14 @@ def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_
         if len(words) == 0:
             continue
 
+        # Protect negation tokens and ALL-CAPS tokens unconditionally.
+        # Negations invert meaning; ALL-CAPS is a user escape hatch.
+        for word_idx, word in enumerate(words):
+            if protect_negations and word.lower() in NEGATION_TOKENS:
+                protected_positions.add((sent_idx, word_idx))
+            elif protect_all_caps and _is_all_caps_token(word):
+                protected_positions.add((sent_idx, word_idx))
+
         # If NER protection enabled, find protected positions
         if protect_ner:
             # Map character positions to word indices
@@ -168,7 +203,7 @@ def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_
             removed_indices = set()
             for sent_i, word_i, prob in candidates:
                 # Skip if this is a protected NER position
-                if protect_ner and (sent_i, word_i) in protected_positions:
+                if (sent_i, word_i) in protected_positions:
                     continue
 
                 # Check if adjacent word was already removed
@@ -183,7 +218,7 @@ def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_
             for sent_i, word_i, prob in word_probs:
                 if prob >= prob_threshold:
                     # Skip if this is a protected NER position
-                    if protect_ner and (sent_i, word_i) in protected_positions:
+                    if (sent_i, word_i) in protected_positions:
                         continue
                     words_to_remove.add((sent_i, word_i))
 
@@ -276,6 +311,10 @@ Probability thresholds (lower = more aggressive):
                        help='never remove two adjacent words; if both exceed threshold, remove only the highest probability one')
     parser.add_argument('--no-protect-ner', action='store_true',
                        help='disable NER protection (by default, named entities like PERSON, ORG, GPE, DATE are preserved)')
+    parser.add_argument('--no-protect-negations', action='store_true',
+                       help='disable negation protection (by default, not/never/cannot/n\'t etc. are preserved to avoid meaning inversion)')
+    parser.add_argument('--protect-all-caps', action='store_true',
+                       help='preserve ALL-CAPS tokens (>=2 letters) like DANGER or DONT as a user-defined escape hatch (off by default)')
 
     args = parser.parse_args()
 
@@ -302,6 +341,10 @@ Probability thresholds (lower = more aggressive):
             print("NO-ADJACENT: enabled (won't remove consecutive words)")
         if not args.no_protect_ner:
             print("NER PROTECTION: enabled (named entities preserved)")
+        if not args.no_protect_negations:
+            print("NEGATION PROTECTION: enabled (not/never/n't preserved)")
+        if args.protect_all_caps:
+            print("ALL-CAPS PROTECTION: enabled (ALL-CAPS tokens preserved)")
     print("=" * 60)
     print()
 
@@ -314,7 +357,9 @@ Probability thresholds (lower = more aggressive):
 
         output_text = compress_text(input_text, prob_threshold=args.prob_threshold,
                                     no_adjacent_removal=args.no_adjacent,
-                                    protect_ner=not args.no_protect_ner)
+                                    protect_ner=not args.no_protect_ner,
+                                    protect_negations=not args.no_protect_negations,
+                                    protect_all_caps=args.protect_all_caps)
 
         print("CAVEMAN COMPRESSED:")
         print(output_text)
