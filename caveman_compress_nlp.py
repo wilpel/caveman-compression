@@ -62,12 +62,43 @@ def get_nlp_model(lang='en'):
     _nlp_models[lang] = nlp
     return nlp
 
+# Negation tokens (English): removing these inverts sentence meaning, so they
+# are preserved unconditionally regardless of stop-word status. For non-English
+# languages, spaCy's stop-word lists generally do not classify negations as
+# stop words, so this list is English-focused.
+NEGATION_TOKENS = {
+    'no', 'not', 'never', 'none', 'nobody', 'nothing', 'nowhere', 'neither', 'nor',
+    "n't", "don't", "doesn't", "didn't", "won't", "wouldn't", "shouldn't",
+    "couldn't", "can't", "cannot", "isn't", "aren't", "wasn't", "weren't",
+    "hasn't", "haven't", "hadn't", "mustn't", "shan't", "ain't",
+    'without',
+}
+
+def _is_all_caps_token(word):
+    """True if a word is an ALL-CAPS token worth preserving (>=2 letters, all upper).
+
+    Lets users wrap critical terms in ALL CAPS as a stable escape hatch that
+    survives compression.
+    """
+    letters = [c for c in word if c.isalpha()]
+    return len(letters) >= 2 and all(c.isupper() for c in letters)
+
 def count_tokens(text):
     """Estimate token count: characters / 4"""
     return len(text.strip()) // 4
 
-def compress_text(text, lang='en'):
-    """Apply NLP-based compression using spaCy"""
+def compress_text(text, lang='en', protect_negations=True, protect_all_caps=False):
+    """Apply NLP-based compression using spaCy.
+
+    Args:
+        text: input text.
+        lang: language code.
+        protect_negations: preserve negation tokens (not/never/n't/cannot...)
+            so compression cannot invert meaning. Defaults True.
+        protect_all_caps: preserve ALL-CAPS tokens (>=2 letters) as a stable
+            user escape hatch for critical terms. Off by default; opt in via
+            --protect-all-caps.
+    """
     nlp = get_nlp_model(lang)
     doc = nlp(text)
 
@@ -77,6 +108,15 @@ def compress_text(text, lang='en'):
         kept_tokens = []
 
         for token in sent:
+            # Preserve negations and ALL-CAPS tokens before any skip rule —
+            # negations invert meaning; ALL-CAPS is a user-defined wrapper.
+            if protect_negations and token.text.lower() in NEGATION_TOKENS:
+                kept_tokens.append(token.text)
+                continue
+            if protect_all_caps and _is_all_caps_token(token.text):
+                kept_tokens.append(token.text)
+                continue
+
             # Skip punctuation (except important ones like numbers with decimals)
             if token.is_punct and token.text not in ['-', '/', ':', '%', '$', '€', '£']:
                 continue
@@ -168,6 +208,10 @@ Supported languages: en, es, de, fr, it, pt, nl, el, nb, lt, ja, zh, pl, ro, ru
     parser.add_argument('-o', '--output', help='output file path')
     parser.add_argument('-l', '--lang', default='en',
                        help='language code (en, es, de, fr, etc.)')
+    parser.add_argument('--no-protect-negations', action='store_true',
+                       help='disable negation protection (by default, not/never/cannot/n\'t etc. are preserved to avoid meaning inversion)')
+    parser.add_argument('--protect-all-caps', action='store_true',
+                       help='preserve ALL-CAPS tokens (>=2 letters) like DANGER or DONT as a user-defined escape hatch (off by default)')
 
     args = parser.parse_args()
 
@@ -199,7 +243,9 @@ Supported languages: en, es, de, fr, it, pt, nl, el, nb, lt, ja, zh, pl, ro, ru
         print("Compressing...")
         print()
 
-        output_text = compress_text(input_text, args.lang)
+        output_text = compress_text(input_text, args.lang,
+                                    protect_negations=not args.no_protect_negations,
+                                    protect_all_caps=args.protect_all_caps)
 
         print("CAVEMAN COMPRESSED:")
         print(output_text)

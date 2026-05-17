@@ -45,6 +45,8 @@ LLMs excel at filling linguistic gaps. They predict missing grammar, connectives
 - Technical terms: "O(log n)", "binary search"
 - Constraints: "medium-large", "frequently accessed"
 - Specifics: "Stockholm", "99.9% uptime"
+- Negations: "not", "never", "cannot", "don't", "n't" (removing these would invert meaning)
+- ALL-CAPS tokens (opt-in): user-defined escape hatch for critical terms like "DANGER"
 
 ```
 Compressed: "Company medium-large. Location Stockholm."
@@ -98,7 +100,7 @@ python caveman_compress_nlp.py compress -f input.txt -l es  # specify language
 ```bash
 python caveman_compress_mlm.py compress "Your verbose text here"
 python caveman_compress_mlm.py compress -f input.txt -o output.txt
-python caveman_compress_mlm.py compress -f input.txt -k 30  # adjust compression level
+python caveman_compress_mlm.py compress -f input.txt -p 1e-4  # adjust probability threshold
 ```
 
 **LLM-based compression (40-58% reduction, requires API key):**
@@ -272,7 +274,7 @@ See [SPEC.md](SPEC.md) for full rules.
 - **Cost:** Free
 - **Quality:** Excellent compression, predictability-aware using RoBERTa
 - **Speed:** ~1-5s per document (local model)
-- **Method:** Removes top-k most predictable tokens based on masked language model probabilities
+- **Method:** Removes tokens whose masked language model probability exceeds a configurable threshold (default `P >= 1e-5`)
 - **Use when:** Need better compression than NLP without API costs, can tolerate model download (~500MB) and initial loading time
 
 ### NLP-based (`caveman_compress_nlp.py`)
@@ -282,6 +284,54 @@ See [SPEC.md](SPEC.md) for full rules.
 - **Speed:** <100ms
 - **Languages:** 15+ supported (en, es, de, fr, it, pt, nl, el, nb, lt, ja, zh, pl, ro, ru, and more)
 - **Use when:** Working offline, processing large volumes, no API budget, or need multilingual support
+
+---
+
+## Safety Preservation
+
+The MLM-based and NLP-based compressors apply two safety rules that override
+normal removal decisions. These prevent compression from silently inverting
+meaning or stripping terms the user has explicitly marked as critical.
+
+### Negation Protection (on by default)
+
+Negation tokens are preserved unconditionally. Removing them inverts the
+meaning of the surrounding sentence, which is unacceptable for any
+production use.
+
+Protected tokens (case-insensitive):
+`no`, `not`, `never`, `none`, `nobody`, `nothing`, `nowhere`, `neither`, `nor`,
+`without`, `cannot`, `n't`, and the common contractions (`don't`, `doesn't`,
+`didn't`, `won't`, `wouldn't`, `shouldn't`, `couldn't`, `can't`, `isn't`,
+`aren't`, `wasn't`, `weren't`, `hasn't`, `haven't`, `hadn't`, `mustn't`,
+`shan't`, `ain't`).
+
+Disable with `--no-protect-negations` if you have an unusual use case that
+requires removal of negations.
+
+```bash
+python caveman_compress_nlp.py compress "You should never delete prod without a backup."
+# → "Never delete prod without backup."   (negations preserved)
+```
+
+### ALL-CAPS Escape Hatch (opt-in)
+
+When enabled with `--protect-all-caps`, any token consisting of ≥2 uppercase
+letters is preserved verbatim regardless of predictability or stop-word
+status. This gives teams a stable wrapper they can use to mark domain-critical
+terms that must survive compression.
+
+```bash
+python caveman_compress_nlp.py compress --protect-all-caps "The DANGER flag must remain set."
+# → "DANGER flag remain set."
+```
+
+Pair with a simple pre-filter to capitalize project-specific terms before
+compression — e.g. piping through `sed` to upcase `PROD`, `STAGING`, or
+custom safety markers.
+
+Applies to: `caveman_compress_mlm.py`, `caveman_compress_nlp.py`. The
+LLM-based compressor relies on prompt instructions rather than these flags.
 
 ---
 

@@ -179,6 +179,47 @@ Every inference step MUST be explicit. No implicit logical leaps allowed.
 
 ---
 
+### Rule 10: Negation Preservation
+
+Negation tokens MUST NEVER be removed. Removing them inverts the meaning of
+the surrounding sentence and silently produces output that contradicts the
+input — an unacceptable failure mode regardless of compression ratio.
+
+**Protected tokens** (case-insensitive):
+`no`, `not`, `never`, `none`, `nobody`, `nothing`, `nowhere`, `neither`,
+`nor`, `without`, `cannot`, `n't`, and the standard English contractions
+(`don't`, `doesn't`, `didn't`, `won't`, `wouldn't`, `shouldn't`, `couldn't`,
+`can't`, `isn't`, `aren't`, `wasn't`, `weren't`, `hasn't`, `haven't`,
+`hadn't`, `mustn't`, `shan't`, `ain't`).
+
+```
+❌ "delete prod backup"           (was: "never delete prod without a backup")
+✅ "never delete prod without backup"
+```
+
+This rule overrides Rule 6 (intensifier removal), Rule 7 (article omission),
+and stop-word removal in any implementation.
+
+---
+
+### Rule 11: ALL-CAPS Escape Hatch
+
+Implementations SHOULD provide an opt-in mode that preserves any token of
+≥2 uppercase letters verbatim. This gives users a stable, format-agnostic
+wrapper to mark domain-critical terms (`DANGER`, `PROD`, custom safety
+markers) that must survive compression regardless of predictability.
+
+The escape hatch is **opt-in** rather than default because it changes
+behavior for inputs that happen to contain incidental acronyms (`API`,
+`HTTP`, `JSON`), which most users want compressed normally.
+
+```
+Input  (--protect-all-caps):  "The DANGER flag must remain set."
+Output:                       "DANGER flag remain set."
+```
+
+---
+
 ## Edge Cases
 
 ### Conditionals
@@ -330,6 +371,7 @@ check. Add null check before dereference. Prevents error next time.
 
 ## Version History
 
+- **v1.1**: Added Rule 10 (Negation Preservation, default on) and Rule 11 (ALL-CAPS Escape Hatch, opt-in) to prevent meaning inversion and provide a user-controlled preservation mechanism.
 - **v1.0** (2025-01): Initial specification release
 
 ---
