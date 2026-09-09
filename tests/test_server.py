@@ -11,6 +11,7 @@ import os
 import sys
 import types
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -21,6 +22,7 @@ class _Behavior:
     mlm_error = None
     mlm_result = "mlm-compressed"
     nlp_result = "nlp-compressed"
+    nlp_calls = []
     detected = "en"
 
 
@@ -30,15 +32,24 @@ def _fake_mlm_compress(text, language=None, preset="lite", mode="sentence"):
     return _Behavior.mlm_result
 
 
+def _fake_nlp_compress(text, lang="en"):
+    _Behavior.nlp_calls.append(lang)
+    return _Behavior.nlp_result
+
+
 _mlm = types.ModuleType("caveman_compress_mlm")
-_mlm.SUPPORTED_LANGUAGES = {"en": {}, "fr": {}}
+_mlm.SUPPORTED_LANGUAGES = {
+    "en": {},
+    "fr": {},
+    "sv": {"model": "KB/bert-base-swedish-cased", "spacy": "sv_core_news_sm"},
+}
 _mlm.detect_language = lambda text: _Behavior.detected
 _mlm.compress_text = _fake_mlm_compress
 _mlm.get_mlm_model = lambda lang: None
 _mlm.InputTooLongError = type("InputTooLongError", (ValueError,), {})
 
 _nlp = types.ModuleType("caveman_compress_nlp")
-_nlp.compress_text = lambda text, lang="en": _Behavior.nlp_result
+_nlp.compress_text = _fake_nlp_compress
 
 
 def _import_target(name):
@@ -68,6 +79,7 @@ class ServerBoundaryTest(unittest.TestCase):
 
     def setUp(self):
         _Behavior.mlm_error = None
+        _Behavior.nlp_calls = []
         _Behavior.detected = "en"
         self.client = self.server.app.test_client()
 
@@ -187,6 +199,38 @@ class ServerBoundaryTest(unittest.TestCase):
         self.assertTrue(body["fallback"])
         self.assertEqual(body["preset"], "lite")
         self.assertEqual(body["mode"], "sentence")
+
+    def test_custom_active_language_forced_nlp_uses_manifest_language(self):
+        _Behavior.detected = "sv"
+        r = self.client.post("/compress", json={"text": "hej världen", "method": "nlp"})
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertEqual(body["model"], "caveman-nlp-sv")
+        self.assertEqual(_Behavior.nlp_calls, ["sv"])
+
+    def test_custom_active_language_mlm_fallback_uses_manifest_language(self):
+        _Behavior.detected = "sv"
+        _Behavior.mlm_error = OSError("model unavailable")
+        r = self.client.post("/compress", json={"text": "hej världen"})
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertEqual(body["model"], "caveman-nlp-sv")
+        self.assertTrue(body["fallback"])
+        self.assertEqual(_Behavior.nlp_calls, ["sv"])
+
+    def test_nlp_loader_uses_manifest_spacy_model_without_multilingual_fallback(self):
+        import caveman_compress_nlp as nlp
+
+        nlp._nlp_models.pop("sv", None)
+        with mock.patch.object(
+            nlp, "NLP_LANGUAGE_CONFIG", {"sv": {"spacy": "sv_core_news_sm"}}
+        ), mock.patch.object(
+            nlp.spacy, "load", side_effect=OSError("model unavailable")
+        ) as load:
+            with self.assertRaises(nlp.ModelUnavailableError):
+                nlp.get_nlp_model("sv")
+
+        load.assert_called_once_with("sv_core_news_sm")
 
     def test_non_active_language_returns_unchanged(self):
         # Spanish is not an active MLM language (default only en/fr), so the

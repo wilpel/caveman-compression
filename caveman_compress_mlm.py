@@ -235,7 +235,7 @@ def get_mlm_probability(lang_code, sentence, word_idx):
 
     return prob
 
-def compress_text(text, language=None, drop_ratio=None, preset="lite", mode="sentence", calibrate_from_nlp=True, no_adjacent_removal=False, protect_ner=True):
+def compress_text(text, prob_threshold=1e-5, no_adjacent_removal=False, protect_ner=True, *, language=None, drop_ratio=None, preset="lite", mode="sentence", calibrate_from_nlp=True):
     """
     Apply MLM-based compression by removing words whose predictability exceeds threshold.
 
@@ -245,6 +245,9 @@ def compress_text(text, language=None, drop_ratio=None, preset="lite", mode="sen
 
     Args:
         text: Input text to compress
+        prob_threshold: Minimum MLM probability for a removal candidate. Without
+            adaptive calibration, every candidate at or above this value is
+            removed; adaptive modes use it to filter the drop-ratio candidates.
         language: Language code (auto-detect if None)
         drop_ratio: Fraction of words to drop (0.0-1.0). If set, uses adaptive threshold.
         preset: Preset name (lite/full/ultra) used with calibrate_from_nlp
@@ -307,8 +310,9 @@ def compress_text(text, language=None, drop_ratio=None, preset="lite", mode="sen
     nlp = get_nlp_model(language)
     doc = nlp(text)
     
-    # Calculate drop_ratio from NLP if needed
-    if drop_ratio is None and calibrate_from_nlp:
+    # Calculate drop_ratio from NLP if needed. Sentence mode performs this
+    # calibration independently for each sentence in _compress_sentence_mode.
+    if mode == "text" and drop_ratio is None and calibrate_from_nlp:
         import math
         try:
             from caveman_compress_nlp import compress_text as compress_text_nlp
@@ -331,16 +335,19 @@ def compress_text(text, language=None, drop_ratio=None, preset="lite", mode="sen
         except Exception:
             drop_ratio = 0.3  # fallback
     
-    if drop_ratio is None:
-        drop_ratio = 0.3  # default fallback
-    
     # Process based on mode
     if mode == "text":
         # Text mode: NLP on full text, MLM on full text context
-        return _compress_text_mode(text, doc, language, drop_ratio, no_adjacent_removal, protect_ner)
+        return _compress_text_mode(
+            text, doc, language, drop_ratio, no_adjacent_removal, protect_ner,
+            prob_threshold=prob_threshold,
+        )
     else:
         # Sentence mode: NLP per sentence, MLM per sentence context (default)
-        return _compress_sentence_mode(text, doc, language, preset, drop_ratio, calibrate_from_nlp, no_adjacent_removal, protect_ner)
+        return _compress_sentence_mode(
+            text, doc, language, preset, drop_ratio, calibrate_from_nlp,
+            no_adjacent_removal, protect_ner, prob_threshold=prob_threshold,
+        )
 
 def _word_char_offsets(text, words):
     """Return (start, end) character offsets for whitespace-split words in text."""
@@ -365,7 +372,7 @@ def _ner_covered_words(word_offsets, ner_ranges):
     return protected
 
 
-def _compress_text_mode(text, doc, language, drop_ratio, no_adjacent_removal, protect_ner):
+def _compress_text_mode(text, doc, language, drop_ratio, no_adjacent_removal, protect_ner, prob_threshold=1e-5):
     """Text mode: compress using full text context"""
     words = text.split()
     if len(words) < 3:
@@ -389,19 +396,28 @@ def _compress_text_mode(text, doc, language, drop_ratio, no_adjacent_removal, pr
             prob = get_mlm_probability(language, text, i)
             word_probs.append((i, prob))
 
-    # Calculate how many words to drop
-    num_to_drop = int(len(words) * drop_ratio)
+    if drop_ratio is None:
+        # Legacy threshold mode: remove every eligible candidate at or above
+        # the threshold.
+        sortable_probs = [
+            (i, p) for i, p in word_probs
+            if p > 0 and p >= prob_threshold
+        ]
+        to_remove = {i for i, _ in sortable_probs}
+    else:
+        # Adaptive mode: remove the most predictable words up to drop_ratio.
+        num_to_drop = int(len(words) * drop_ratio)
+        sortable_probs = [
+            (i, p) for i, p in word_probs
+            if p > 0 and p >= prob_threshold
+        ]
+        sortable_probs.sort(key=lambda x: x[1], reverse=True)
 
-    # Sort by probability (highest first = most predictable)
-    sortable_probs = [(i, p) for i, p in word_probs if p > 0]
-    sortable_probs.sort(key=lambda x: x[1], reverse=True)
-
-    # Drop the most predictable words
-    to_remove = set()
-    for i, p in sortable_probs:
-        if len(to_remove) >= num_to_drop:
-            break
-        to_remove.add(i)
+        to_remove = set()
+        for i, p in sortable_probs:
+            if len(to_remove) >= num_to_drop:
+                break
+            to_remove.add(i)
 
     # Apply no_adjacent_removal constraint
     if no_adjacent_removal:
@@ -420,7 +436,7 @@ def _compress_text_mode(text, doc, language, drop_ratio, no_adjacent_removal, pr
     compressed_words = [w for i, w in enumerate(words) if i not in to_remove]
     return " ".join(compressed_words)
 
-def _compress_sentence_mode(text, doc, language, preset, drop_ratio, calibrate_from_nlp, no_adjacent_removal, protect_ner):
+def _compress_sentence_mode(text, doc, language, preset, drop_ratio, calibrate_from_nlp, no_adjacent_removal, protect_ner, prob_threshold=1e-5):
     """Sentence mode: compress per sentence (default)"""
     import math
     from caveman_compress_nlp import compress_text as compress_text_nlp
@@ -442,8 +458,10 @@ def _compress_sentence_mode(text, doc, language, preset, drop_ratio, calibrate_f
         # Only calibrate per-sentence drop_ratio from NLP when no explicit
         # drop_ratio was provided AND calibration is enabled. Otherwise use
         # the caller-supplied value unchanged.
-        if drop_ratio is not None or not calibrate_from_nlp:
-            sent_drop_ratio = drop_ratio if drop_ratio is not None else 0.5
+        if drop_ratio is not None:
+            sent_drop_ratio = drop_ratio
+        elif not calibrate_from_nlp:
+            sent_drop_ratio = None
         else:
             sent_drop_ratio = drop_ratio
             try:
@@ -485,19 +503,29 @@ def _compress_sentence_mode(text, doc, language, preset, drop_ratio, calibrate_f
                 prob = get_mlm_probability(language, sent_text, i)
                 word_probs.append((i, prob))
         
-        # Calculate how many words to drop
-        num_to_drop = int(len(words) * sent_drop_ratio)
-        
-        # Sort by probability
-        sortable_probs = [(i, p) for i, p in word_probs if p > 0]
-        sortable_probs.sort(key=lambda x: x[1], reverse=True)
-        
-        # Drop the most predictable words
-        to_remove = set()
-        for i, p in sortable_probs:
-            if len(to_remove) >= num_to_drop:
-                break
-            to_remove.add(i)
+        if sent_drop_ratio is None:
+            # Legacy threshold mode: remove every eligible candidate at or
+            # above the threshold.
+            sortable_probs = [
+                (i, p) for i, p in word_probs
+                if p > 0 and p >= prob_threshold
+            ]
+            to_remove = {i for i, _ in sortable_probs}
+        else:
+            # Adaptive mode: remove the most predictable words up to the
+            # calibrated or explicitly requested drop ratio.
+            num_to_drop = int(len(words) * sent_drop_ratio)
+            sortable_probs = [
+                (i, p) for i, p in word_probs
+                if p > 0 and p >= prob_threshold
+            ]
+            sortable_probs.sort(key=lambda x: x[1], reverse=True)
+
+            to_remove = set()
+            for i, p in sortable_probs:
+                if len(to_remove) >= num_to_drop:
+                    break
+                to_remove.add(i)
         
         # Apply no_adjacent_removal
         if no_adjacent_removal:

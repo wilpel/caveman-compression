@@ -9,6 +9,8 @@ import sys
 import argparse
 from pathlib import Path
 
+from language_catalog import load_active_languages
+
 try:
     import spacy
     from spacy.language import Language
@@ -32,44 +34,31 @@ class ModelUnavailableError(OSError):
 
 # Language model cache
 _nlp_models = {}
+NLP_LANGUAGE_CONFIG = load_active_languages()
 
 def get_nlp_model(lang='en'):
-    """Load or retrieve cached spaCy model"""
+    """Load or retrieve the spaCy model configured for an active language."""
     if lang in _nlp_models:
         return _nlp_models[lang]
 
-    # Try to load language-specific model
-    model_names = {
-        'en': 'en_core_web_sm',
-        'es': 'es_core_news_sm',
-        'de': 'de_core_news_sm',
-        'fr': 'fr_core_news_sm',
-        'it': 'it_core_news_sm',
-        'pt': 'pt_core_news_sm',
-        'nl': 'nl_core_news_sm',
-        'el': 'el_core_news_sm',
-        'nb': 'nb_core_news_sm',
-        'lt': 'lt_core_news_sm',
-        'ja': 'ja_core_news_sm',
-        'zh': 'zh_core_web_sm',
-        'pl': 'pl_core_news_sm',
-        'ro': 'ro_core_news_sm',
-        'ru': 'ru_core_news_sm',
-    }
+    config = NLP_LANGUAGE_CONFIG.get(lang)
+    if config is None:
+        raise ModelUnavailableError(
+            f"No NLP model configured for inactive language '{lang}'"
+        )
 
-    model_name = model_names.get(lang, 'xx_ent_wiki_sm')  # multilingual fallback
+    model_name = config.get('spacy')
+    if not model_name:
+        raise ModelUnavailableError(
+            f"No spaCy model configured for language '{lang}'"
+        )
 
     try:
         nlp = spacy.load(model_name)
-    except OSError:
-        print(f"Warning: Model '{model_name}' not found. Using multilingual model.", file=sys.stderr)
-        try:
-            nlp = spacy.load('xx_ent_wiki_sm')
-        except OSError as e:
-            raise ModelUnavailableError(
-                f"No spaCy models found for language '{lang}'. Install with: "
-                f"python -m spacy download {model_names.get('en', 'en_core_web_sm')}"
-            ) from e
+    except OSError as e:
+        raise ModelUnavailableError(
+            f"spaCy model '{model_name}' not available for language '{lang}': {e}"
+        ) from e
 
     _nlp_models[lang] = nlp
     return nlp

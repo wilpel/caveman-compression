@@ -170,6 +170,7 @@ The MCP server provides the same functionality via the Model Context Protocol:
 ```json
 {
   "jsonrpc": "2.0",
+  "id": 1,
   "method": "tools/call",
   "params": {
     "name": "caveman_compress",

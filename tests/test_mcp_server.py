@@ -22,6 +22,7 @@ class _Behavior:
     mlm_error = None
     mlm_result = "mlm-compressed"
     nlp_result = "nlp-compressed"
+    nlp_calls = []
     detected = "en"
 
 
@@ -31,15 +32,24 @@ def _fake_mlm_compress(text, language=None, preset="lite", mode="sentence"):
     return _Behavior.mlm_result
 
 
+def _fake_nlp_compress(text, lang="en"):
+    _Behavior.nlp_calls.append(lang)
+    return _Behavior.nlp_result
+
+
 _mlm = types.ModuleType("caveman_compress_mlm")
-_mlm.SUPPORTED_LANGUAGES = {"en": {}, "fr": {}}
+_mlm.SUPPORTED_LANGUAGES = {
+    "en": {},
+    "fr": {},
+    "sv": {"model": "KB/bert-base-swedish-cased", "spacy": "sv_core_news_sm"},
+}
 _mlm.detect_language = lambda text: _Behavior.detected
 _mlm.compress_text = _fake_mlm_compress
 _mlm.get_mlm_model = lambda lang: None
 _mlm.InputTooLongError = type("InputTooLongError", (ValueError,), {})
 
 _nlp = types.ModuleType("caveman_compress_nlp")
-_nlp.compress_text = lambda text, lang="en": _Behavior.nlp_result
+_nlp.compress_text = _fake_nlp_compress
 
 
 def _import_target(name):
@@ -69,6 +79,7 @@ class McpProtocolTest(unittest.TestCase):
 
     def setUp(self):
         _Behavior.mlm_error = None
+        _Behavior.nlp_calls = []
         _Behavior.detected = "en"
 
     def _call(self, arguments, tool="caveman_compress", request_id=3):
@@ -155,6 +166,28 @@ class McpProtocolTest(unittest.TestCase):
     def test_tools_call_text_too_long(self):
         self.assertEqual(self._call({"text": "a" * 4097})["error"]["code"], -32602)
 
+    def test_json_rpc_transport_allows_at_least_64_kib(self):
+        self.assertGreaterEqual(self.mcp_server.MAX_LINE_LENGTH, 64 * 1024)
+
+    def test_tools_call_accepts_exactly_4096_unicode_characters(self):
+        text = "😀" * 4096
+        req = {
+            "jsonrpc": "2.0",
+            "id": 4096,
+            "method": "tools/call",
+            "params": {
+                "name": "caveman_compress",
+                "arguments": {"text": text},
+            },
+        }
+        line = json.dumps(req, ensure_ascii=False)
+        self.assertEqual(len(text), self.mcp_server.MAX_INPUT_LENGTH)
+        self.assertLessEqual(len(line.encode("utf-8")), self.mcp_server.MAX_LINE_LENGTH)
+        msg = json.loads(self.mcp_server.process_line(line))
+        self.assertEqual(msg["id"], 4096)
+        self.assertNotIn("error", msg)
+        self.assertEqual(msg["result"]["metadata"]["original_size"], 4096)
+
     def test_tools_call_invalid_preset(self):
         self.assertEqual(self._call({"text": "hi", "preset": "nope"})["error"]["code"], -32602)
 
@@ -208,6 +241,22 @@ class McpProtocolTest(unittest.TestCase):
         self.assertTrue(meta["fallback"])
         self.assertEqual(meta["preset"], "lite")
         self.assertEqual(meta["mode"], "sentence")
+
+    def test_custom_active_language_forced_nlp_uses_manifest_language(self):
+        _Behavior.detected = "sv"
+        msg = self._call({"text": "hej världen", "method": "nlp"})
+        self.assertNotIn("error", msg)
+        self.assertEqual(msg["result"]["metadata"]["model"], "caveman-nlp-sv")
+        self.assertEqual(_Behavior.nlp_calls, ["sv"])
+
+    def test_custom_active_language_mlm_fallback_uses_manifest_language(self):
+        _Behavior.detected = "sv"
+        _Behavior.mlm_error = OSError("model unavailable")
+        msg = self._call({"text": "hej världen"})
+        self.assertNotIn("error", msg)
+        self.assertEqual(msg["result"]["metadata"]["model"], "caveman-nlp-sv")
+        self.assertTrue(msg["result"]["metadata"]["fallback"])
+        self.assertEqual(_Behavior.nlp_calls, ["sv"])
 
     def test_non_active_language_returns_unchanged(self):
         # Spanish is not an active MLM language (default only en/fr), so the

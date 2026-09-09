@@ -19,7 +19,7 @@ MCP_VERSION = "2024-11-05"
 
 # Input constraints
 MAX_INPUT_LENGTH = 4096
-MAX_LINE_LENGTH = 8192  # bytes per stdin line (JSON-RPC message)
+MAX_LINE_LENGTH = 64 * 1024  # bytes per stdin line (JSON-RPC message)
 PRESETS = ("lite", "full", "ultra")
 MODES = ("sentence", "text")
 METHODS = ("mlm", "nlp")

@@ -15,10 +15,12 @@ Covers:
 """
 
 import os
+import inspect
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -233,6 +235,119 @@ class TestTokenBound(unittest.TestCase):
         with mock.patch.object(mlm, "get_mlm_model", return_value=model_data):
             with self.assertRaises(RuntimeError):
                 mlm.get_mlm_probability("en", "word " * 10, 0)
+
+
+class TestCompressionApiCompatibility(unittest.TestCase):
+    def test_legacy_positional_parameters_precede_keyword_only_controls(self):
+        parameters = list(inspect.signature(mlm.compress_text).parameters.values())
+
+        self.assertEqual(
+            [parameter.name for parameter in parameters[:4]],
+            ["text", "prob_threshold", "no_adjacent_removal", "protect_ner"],
+        )
+        self.assertEqual(
+            [parameter.kind for parameter in parameters[4:]],
+            [inspect.Parameter.KEYWORD_ONLY] * 5,
+        )
+        self.assertEqual(
+            [parameter.name for parameter in parameters[4:]],
+            ["language", "drop_ratio", "preset", "mode", "calibrate_from_nlp"],
+        )
+
+    def test_numeric_second_positional_argument_is_not_language(self):
+        text = "The quick brown fox"
+        doc = SimpleNamespace(sents=[], ents=[])
+
+        with mock.patch.object(mlm, "detect_language", return_value="en") as detect, \
+                mock.patch.object(mlm, "get_nlp_model", return_value=lambda value: doc), \
+                mock.patch.object(mlm, "_compress_sentence_mode", return_value="compressed") as compress:
+            result = mlm.compress_text(text, 0.2, True, False, calibrate_from_nlp=False)
+
+        self.assertEqual(result, "compressed")
+        detect.assert_called_once_with(text)
+        self.assertEqual(compress.call_args.args[2], "en")
+        self.assertTrue(compress.call_args.args[6])
+        self.assertFalse(compress.call_args.args[7])
+
+    def test_prob_threshold_changes_legacy_removals(self):
+        text = "Alpha beta gamma delta"
+        doc = SimpleNamespace(
+            sents=[SimpleNamespace(text=text, start_char=0)],
+            ents=[],
+        )
+        probabilities = [0.1, 0.9, 0.2, 0.8]
+
+        def mlm_probability(language, sentence, word_idx):
+            return probabilities[word_idx]
+
+        with mock.patch.object(mlm, "get_nlp_model", return_value=lambda value: doc), \
+                mock.patch.object(mlm, "get_mlm_probability", side_effect=mlm_probability):
+            conservative = mlm.compress_text(
+                text,
+                prob_threshold=0.95,
+                language="en",
+                calibrate_from_nlp=False,
+                protect_ner=False,
+            )
+            aggressive = mlm.compress_text(
+                text,
+                prob_threshold=0.5,
+                language="en",
+                calibrate_from_nlp=False,
+                protect_ner=False,
+            )
+
+        self.assertEqual(conservative, text)
+        self.assertEqual(aggressive, "Alpha gamma")
+
+
+class TestSentenceCalibration(unittest.TestCase):
+    def _doc(self):
+        first = "Alpha beta gamma delta"
+        second = "Epsilon zeta eta theta"
+        return SimpleNamespace(
+            sents=[
+                SimpleNamespace(text=first, start_char=0),
+                SimpleNamespace(text=second, start_char=len(first) + 1),
+            ],
+            ents=[],
+        )
+
+    def test_default_sentence_mode_calibrates_each_sentence(self):
+        text = "Alpha beta gamma delta. Epsilon zeta eta theta"
+        doc = self._doc()
+
+        def nlp_compress(sentence, lang):
+            return "Alpha delta" if sentence.startswith("Alpha") else "Epsilon theta"
+
+        with mock.patch.object(mlm, "get_nlp_model", return_value=lambda value: doc), \
+                mock.patch("caveman_compress_nlp.compress_text", side_effect=nlp_compress) as nlp, \
+                mock.patch.object(mlm, "get_mlm_probability", return_value=0.9):
+            mlm.compress_text(text, language="en")
+
+        self.assertEqual(
+            [call.args for call in nlp.call_args_list],
+            [
+                ("Alpha beta gamma delta",),
+                ("Epsilon zeta eta theta",),
+            ],
+        )
+        self.assertEqual(
+            [call.kwargs for call in nlp.call_args_list],
+            [{"lang": "en"}, {"lang": "en"}],
+        )
+
+    def test_explicit_drop_ratio_is_not_replaced_by_sentence_calibration(self):
+        text = "Alpha beta gamma delta. Epsilon zeta eta theta"
+        doc = self._doc()
+
+        with mock.patch.object(mlm, "get_nlp_model", return_value=lambda value: doc), \
+                mock.patch("caveman_compress_nlp.compress_text") as nlp, \
+                mock.patch.object(mlm, "get_mlm_probability", return_value=0.9):
+            result = mlm.compress_text(text, language="en", drop_ratio=0.0)
+
+        nlp.assert_not_called()
+        self.assertEqual(result, "Alpha beta gamma delta Epsilon zeta eta theta")
 
 
 class TestFrozenRuntimeConfig(unittest.TestCase):
